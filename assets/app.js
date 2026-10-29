@@ -340,6 +340,7 @@ function colocarEnPunto(px, py) {
   b.y = libre.y;
   estado.bloques.push(b);
   render(); guardarHistorial();
+  marcarPosicion(b);
   c.restantes--;
   if (c.restantes <= 0) {
     const foto = c.foto;
@@ -547,6 +548,7 @@ function iniciarArrastreBloque(e, id) {
     }
     b.x = libre.x; b.y = libre.y;
     w.style.left = b.x + 'px'; w.style.top = b.y + 'px';
+    marcarPosicion(b);
     guardarHistorial();
   };
   w.addEventListener('pointermove', mover);
@@ -1014,6 +1016,12 @@ function abrir3D() {
     mundo.appendChild(cara(w + 14, d + 14, 'translate3d(' + (l - 7) + 'px, -0.5px, ' + (t - 7) + 'px) rotateX(90deg)', {
       transformOrigin: '0 0', background: 'rgba(0,0,0,.38)', filter: 'blur(5px)', outline: 'none', borderRadius: '6px'
     }));
+    // huella en el piso: deja ver exactamente dónde está apoyado el bloque
+    if (!esMarca) {
+      mundo.appendChild(cara(w, d, 'translate3d(' + l + 'px, -0.8px, ' + t + 'px) rotateX(90deg)', {
+        transformOrigin: '0 0', background: 'transparent', outline: '1.5px solid rgba(0,0,0,.55)'
+      }));
+    }
     if (b.estante) { dibujarEstante(mundo, b, l, t, w, d, h); return; }
     // solo rotulamos la cara superior si el equipo es grande (si no, se solapan los textos)
     const etiqueta = (b.a * b.f >= 1.4)
@@ -1279,6 +1287,14 @@ function iniciar() {
   }
 
   if (new URLSearchParams(location.search).has('selftest')) correrTest();
+}
+
+function marcarPosicion(b) {
+  const X = (b.x / ESCALA).toFixed(2);
+  const Y = (b.y / ESCALA).toFixed(2);
+  const X2 = ((b.x + b.a * ESCALA) / ESCALA).toFixed(2);
+  const Y2 = ((b.y + b.f * ESCALA) / ESCALA).toFixed(2);
+  aviso(b.nombre + '  →  X ' + X + ' a ' + X2 + ' m  ·  Y ' + Y + ' a ' + Y2 + ' m');
 }
 
 function borrarTodo(silencioso) {
