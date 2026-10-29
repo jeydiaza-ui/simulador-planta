@@ -867,9 +867,11 @@ function abrir3D() {
       transformOrigin: '0 0', background: 'rgba(0,0,0,.38)', filter: 'blur(5px)', outline: 'none', borderRadius: '6px'
     }));
     if (b.estante) { dibujarEstante(mundo, b, l, t, w, d, h); return; }
+    // solo rotulamos la cara superior si el equipo es grande (si no, se solapan los textos)
+    const etiqueta = (b.a * b.f >= 1.4)
+      ? '<span>' + escapar(b.nombre) + '<br>' + medidas + '</span>' : '';
     mundo.appendChild(cara(w, d, 'translate3d(' + l + 'px, ' + (-h) + 'px, ' + t + 'px) rotateX(90deg)',
-      Object.assign({}, base, { transformOrigin: '0 0' }),
-      '<span>' + escapar(b.nombre) + '<br>' + medidas + '</span>'));
+      Object.assign({}, base, { transformOrigin: '0 0' }), etiqueta));
     mundo.appendChild(cara(w, h, 'translate3d(' + l + 'px, ' + (-h) + 'px, ' + (t + d) + 'px)', lado(1), abHTML(b.id, 'abajo', b.a, h, false)));
     mundo.appendChild(cara(w, h, 'translate3d(' + l + 'px, ' + (-h) + 'px, ' + t + 'px) rotateY(180deg)', lado(0.7), abHTML(b.id, 'arriba', b.a, h, true)));
     mundo.appendChild(cara(d, h, 'translate3d(' + (l - d / 2) + 'px, ' + (-h) + 'px, ' + (t + d / 2) + 'px) rotateY(-90deg)', lado(0.85), abHTML(b.id, 'izq', b.f, h, false)));
