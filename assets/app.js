@@ -13,7 +13,7 @@ const COLORES = { objeto: '#f1c40f', edificacion: '#3498db', muro: '#5d6d7e', li
 
 /* ---------------- estado ---------------- */
 let estado = { ancho: 10.13, fondo: 20.45, bloques: [], aberturas: [] };
-let SNAP = 20;
+let SNAP = 2;
 let zoomActual = 1;
 let zTop = 1;
 let idSeq = 0;
@@ -558,11 +558,13 @@ function iniciarArrastreBloque(e, id) {
    COLISIONES
    ============================================================ */
 function colisiona(el, x, y, w, h) {
-  if (el && el.dataset && el.dataset.categoria === 'libre') return false;
+  const cat = (el && el.dataset && el.dataset.categoria) || '';
+  // pasillos y muros divisorios se pueden ubicar encima de todo
+  if (cat === 'libre' || cat === 'muro') return false;
   const otros = $('bodega').querySelectorAll('.bloque-wrapper');
   for (const o of otros) {
     if (o === el) continue;
-    if (o.dataset.categoria === 'libre') continue;
+    if (o.dataset.categoria === 'libre' || o.dataset.categoria === 'muro') continue;
     const l = parseFloat(o.style.left) || 0, t = parseFloat(o.style.top) || 0;
     const ow = o.offsetWidth, oh = o.offsetHeight;
     if (x < l + ow - 0.01 && x + w > l + 0.01 && y < t + oh - 0.01 && y + h > t + 0.01) return true;
@@ -576,9 +578,10 @@ function buscarLibre(el, w, h, px, py) {
   if (maxX < 0 || maxY < 0) return null;
   if (!colisiona(el, px, py, w, h)) return { x: px, y: py };
 
+  const paso = Math.max(SNAP, 5);
   const xs = [], ys = [];
-  for (let x = 0; x <= maxX; x += SNAP) xs.push(x);
-  for (let y = 0; y <= maxY; y += SNAP) ys.push(y);
+  for (let x = 0; x <= maxX; x += paso) xs.push(x);
+  for (let y = 0; y <= maxY; y += paso) ys.push(y);
   if (xs[xs.length - 1] !== maxX) xs.push(maxX);
   if (ys[ys.length - 1] !== maxY) ys.push(maxY);
   bod.querySelectorAll('.bloque-wrapper').forEach(o => {
@@ -1206,7 +1209,7 @@ function iniciar() {
   $('categoriaBloque').addEventListener('change', () => cambiarCategoria(true));
   $('esStand').addEventListener('change', e => { $('standCampos').style.display = e.target.checked ? 'flex' : 'none'; });
   $('esEstante').addEventListener('change', e => { $('estanteCampos').style.display = e.target.checked ? 'flex' : 'none'; });
-  $('pasoMover').addEventListener('change', e => { SNAP = parseInt(e.target.value, 10) || 20; });
+  $('pasoMover').addEventListener('change', e => { SNAP = parseFloat(e.target.value) || 2; });
   $('espesorMuro').addEventListener('change', e => { $('fondoBloque').value = e.target.value; });
 
   // colocar con un clic en el plano
@@ -1262,6 +1265,7 @@ function iniciar() {
   v.addEventListener('wheel', e => { e.preventDefault(); cam.z *= Math.exp(-e.deltaY * 0.001); aplicarCamara(); }, { passive: false });
 
   cambiarCategoria();
+  SNAP = parseFloat($('pasoMover').value) || 2;
 
   cargarFotosLocal();
 
@@ -1499,6 +1503,30 @@ function correrTest() {
       .some(c => (c.style.backgroundImage || '').indexOf('data:image') > -1);
     cerrar3D();
     return conFoto;
+  });
+
+  t('un muro se puede ubicar dentro de una edificación', () => {
+    borrarTodo(true);
+    $('categoriaBloque').value = 'edificacion'; cambiarCategoria(true);
+    $('nombreBloque').value = 'Almacén'; $('anchoBloque').value = 4; $('fondoBloque').value = 3; $('altoBloque').value = 2.6;
+    agregarBloqueAuto();
+    $('categoriaBloque').value = 'muro'; cambiarCategoria(true);
+    $('nombreBloque').value = 'Divisorio interno';
+    iniciarColocacion(leerFormulario(), 1, null);
+    const ok = colocarEnPunto(20, 20);   // dentro del almacén (0..80, 0..60 px)
+    const m = estado.bloques.filter(b => b.nombre === 'Divisorio interno').pop();
+    cancelarColocacion();
+    $('categoriaBloque').value = 'objeto'; cambiarCategoria(true);
+    return ok && !!m && m.x >= 0 && m.x <= 80;
+  });
+
+  t('pasos finos: 25 cm, 10 cm y 1 cm', () => {
+    const antes = SNAP;
+    SNAP = 5;    const p25 = Math.round(11 / SNAP) * SNAP;   // 10 px = 0.50 m
+    SNAP = 2;    const p10 = Math.round(11 / SNAP) * SNAP;   // 12 px = 0.60 m
+    SNAP = 0.2;  const p1  = Math.round(11 / SNAP) * SNAP;   // 11 px = 0.55 m
+    SNAP = antes;
+    return p25 === 10 && p10 === 12 && Math.abs(p1 - 11) < 1e-6;
   });
 
   cont.textContent = res.join('\n');
