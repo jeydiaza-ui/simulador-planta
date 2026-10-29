@@ -250,6 +250,7 @@ function leerFormulario() {
     x: 0, y: 0
   };
   if (b.a <= 0 || b.f <= 0) return null;
+  b.marca = null;
   if (cat === 'objeto' && $('conMarca').checked) b.marca = num($('anchoMarca').value, 20);
   if (cat === 'objeto' && $('esStand').checked) {
     b.stand = {
@@ -621,7 +622,11 @@ function colisiona(el, x, y, w, h) {
   const otros = $('bodega').querySelectorAll('.bloque-wrapper');
   for (const o of otros) {
     if (o === el) continue;
-    if (o.dataset.categoria === 'libre' || o.dataset.categoria === 'muro') continue;
+    const oc = o.dataset.categoria;
+    if (oc === 'libre' || oc === 'muro') continue;
+    // un equipo puede quedar DENTRO de una edificación (y viceversa)
+    if ((cat === 'objeto' && oc === 'edificacion') ||
+        (cat === 'edificacion' && oc === 'objeto')) continue;
     const l = parseFloat(o.style.left) || 0, t = parseFloat(o.style.top) || 0;
     const ow = o.offsetWidth, oh = o.offsetHeight;
     if (x < l + ow - 0.01 && x + w > l + 0.01 && y < t + oh - 0.01 && y + h > t + 0.01) return true;
@@ -1336,6 +1341,9 @@ function iniciar() {
   $('btnBorrarTodo').addEventListener('click', () => borrarTodo(false));
 
   $('categoriaBloque').addEventListener('change', () => cambiarCategoria(true));
+  document.querySelectorAll('.tipo').forEach(b => {
+    b.addEventListener('click', () => elegirTipo(b.dataset.cat));
+  });
   $('esStand').addEventListener('change', e => { $('standCampos').style.display = e.target.checked ? 'flex' : 'none'; });
   $('esEstante').addEventListener('change', e => { $('estanteCampos').style.display = e.target.checked ? 'flex' : 'none'; });
   $('pasoMover').addEventListener('change', e => { SNAP = parseFloat(e.target.value) || 2; });
@@ -1423,7 +1431,7 @@ function iniciar() {
   v.addEventListener('pointercancel', () => { arrastrando = false; });
   v.addEventListener('wheel', e => { e.preventDefault(); cam.z *= Math.exp(-e.deltaY * 0.001); aplicarCamara(); }, { passive: false });
 
-  cambiarCategoria();
+  elegirTipo('objeto');
   SNAP = parseFloat($('pasoMover').value) || 2;
 
   cargarFotosLocal();
@@ -1458,6 +1466,7 @@ function seleccionar(id) {
   $('selFondo').value = b.f;
   $('selAlto').value = b.h;
   $('selColor').value = b.color;
+  $('selMarca').checked = !!b.marca;
   $('selFoto').value = '';
 }
 
@@ -1478,6 +1487,7 @@ function aplicarSeleccion() {
   b.nombre = ($('selNombre').value || '').trim() || b.nombre;
   b.a = na; b.f = nf; b.h = nh;
   b.color = $('selColor').value;
+  b.marca = $('selMarca').checked ? num($('anchoMarca').value, 20) : null;
   render(); guardarHistorial(); seleccionar(b.id);
   ok('Cambios aplicados');
 }
@@ -1530,17 +1540,59 @@ function quitarFotoEquipo() {
 }
 
 const TAM_DEFECTO = {
-  objeto: [2.00, 1.00, 2.00],
+  objeto: [1.60, 1.00, 1.60],
   edificacion: [3.00, 2.50, 2.60],
   muro: [2.00, 0.15, 2.40],
   libre: [1.00, 0.60, 0.05]
 };
 
+const AYUDA = {
+  objeto: 'Maquinaria o mobiliario. Puede llevar marcación, foto y quedar dentro de una edificación.',
+  edificacion: 'Oficina, baño, almacén, vestier... Se dibuja como cuarto (en 3D sin techo).',
+  muro: 'División interna. No choca con nada: puedes ponerlo dentro de una oficina.',
+  libre: 'Pasillo, zona peatonal o ruta de evacuación. No ocupa área ni choca con nada.'
+};
+
+const CAMPOS = {
+  objeto: ['fNombre', 'fMedidas', 'fAlto', 'fPeso', 'fMarca', 'fStand', 'fCant', 'fDestino', 'fColor', 'fFoto'],
+  edificacion: ['fNombre', 'fMedidas', 'fAlto', 'fCant', 'fColor', 'fFoto'],
+  muro: ['fNombre', 'fMedidas', 'fEspesor', 'fAlto', 'fCant', 'fColor', 'fFoto'],
+  libre: ['fNombre', 'fMedidas', 'fCant', 'fColor']
+};
+
+const ETIQUETAS = {
+  objeto: { nom: 'Nombre del equipo', a: 'Ancho (m)', f: 'Fondo (m)', foto: 'Foto del equipo (opcional)' },
+  edificacion: { nom: 'Nombre de la edificación', a: 'Ancho (m)', f: 'Fondo (m)', foto: 'Foto de la fachada (opcional)' },
+  muro: { nom: 'Nombre del muro (opcional)', a: 'Largo (m)', f: 'Espesor (m)', foto: 'Textura del muro (opcional)' },
+  libre: { nom: 'Nombre de la zona', a: 'Ancho (m)', f: 'Fondo (m)', foto: '' }
+};
+
+function mostrarCampos(cat) {
+  const visibles = CAMPOS[cat] || CAMPOS.objeto;
+  ['fNombre', 'fMedidas', 'fEspesor', 'fAlto', 'fPeso', 'fMarca', 'fStand',
+   'fCant', 'fDestino', 'fColor', 'fFoto'].forEach(id => {
+    const el = $(id);
+    if (el) el.style.display = visibles.indexOf(id) >= 0 ? '' : 'none';
+  });
+  const e = ETIQUETAS[cat] || ETIQUETAS.objeto;
+  if ($('lblNombre')) $('lblNombre').textContent = e.nom;
+  if ($('lblAncho')) $('lblAncho').textContent = e.a;
+  if ($('lblFondo')) $('lblFondo').textContent = e.f;
+  if ($('lblFoto')) $('lblFoto').textContent = e.foto || 'Foto (opcional)';
+  if ($('tipoAyuda')) $('tipoAyuda').textContent = AYUDA[cat] || '';
+}
+
+function elegirTipo(cat) {
+  $('categoriaBloque').value = cat;
+  document.querySelectorAll('.tipo').forEach(b =>
+    b.classList.toggle('activo', b.dataset.cat === cat));
+  cambiarCategoria(true);
+  mostrarCampos(cat);
+}
+
 function cambiarCategoria(ponerDefecto) {
   const c = $('categoriaBloque').value;
   $('colorBloque').value = COLORES[c];
-  $('optObjeto').style.display = c === 'objeto' ? 'block' : 'none';
-  const om = $('optMuro'); if (om) om.style.display = c === 'muro' ? 'block' : 'none';
   if (c === 'muro' && $('espesorMuro')) $('espesorMuro').value = '0.15';
   if (ponerDefecto && TAM_DEFECTO[c]) {
     const [a, f, al] = TAM_DEFECTO[c];
@@ -1548,6 +1600,7 @@ function cambiarCategoria(ponerDefecto) {
     $('fondoBloque').value = f;
     $('altoBloque').value = al;
   }
+  mostrarCampos(c);
 }
 
 /* ============================================================
@@ -1810,6 +1863,32 @@ function correrTest() {
     }, 'agregar');
     return estado.bloques.length === antes + 1 &&
            estado.bloques.some(b => b.nombre === 'Bobinadora');
+  });
+
+  t('un equipo entra dentro de una edificación', () => {
+    borrarTodo(true);
+    $('categoriaBloque').value = 'edificacion'; cambiarCategoria(true);
+    $('nombreBloque').value = 'BOBINADO';
+    $('anchoBloque').value = 4; $('fondoBloque').value = 4; $('altoBloque').value = 2.6;
+    agregarBloqueAuto();
+    const ed = estado.bloques[estado.bloques.length - 1];
+    $('categoriaBloque').value = 'objeto'; cambiarCategoria(true);
+    $('nombreBloque').value = 'Bobinadora';
+    $('anchoBloque').value = 1.6; $('fondoBloque').value = 1; $('altoBloque').value = 1.6;
+    iniciarColocacion(leerFormulario(), 1, null);
+    const ok = colocarEnPunto(ed.x + 20, ed.y + 20);   // justo dentro
+    const m = estado.bloques.filter(b => b.nombre === 'Bobinadora').pop();
+    cancelarColocacion();
+    return ok && !!m && m.x >= ed.x && m.x <= ed.x + 4 * ESCALA;
+  });
+
+  t('quitar la marcación de una edificación', () => {
+    const ed = estado.bloques.find(b => b.nombre === 'BOBINADO');
+    ed.marca = 20;
+    seleccionar(ed.id);
+    $('selMarca').checked = false;
+    aplicarSeleccion();
+    return !estado.bloques.find(b => b.nombre === 'BOBINADO').marca;
   });
 
   cont.textContent = res.join('\n');

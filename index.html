@@ -54,6 +54,10 @@
                 <div><label for="selColor">Color</label><input type="color" id="selColor"></div>
             </div>
             <div class="form-group">
+                <label class="chk"><input type="checkbox" id="selMarca">
+                    Con marcación (franja amarilla y negra)</label>
+            </div>
+            <div class="form-group">
                 <label for="selFoto">Foto / imagen 3D</label>
                 <div class="fila-archivo">
                     <input type="file" id="selFoto" accept="image/*">
@@ -68,27 +72,63 @@
             <button id="btnSelCerrar" class="btn-sec">Cerrar selección</button>
         </div>
 
-        <h2>2. Agregar Equipo</h2>
-        <div class="form-group">
-            <label for="nombreBloque">Nombre</label>
+        <h2>2. ¿Qué vas a agregar?</h2>
+        <div class="tipos">
+            <button type="button" class="tipo activo" data-cat="objeto">Equipo<small>EQ</small></button>
+            <button type="button" class="tipo" data-cat="edificacion">Edificación<small>E</small></button>
+            <button type="button" class="tipo" data-cat="muro">Muro<small>MD</small></button>
+            <button type="button" class="tipo" data-cat="libre">Zona libre<small>MA</small></button>
+        </div>
+        <select id="categoriaBloque" hidden>
+            <option value="objeto">Equipo / objeto (EQ)</option>
+            <option value="edificacion">Edificación (E)</option>
+            <option value="muro">Muro divisorio interior (MD)</option>
+            <option value="libre">Espacio libre: pasillo, zona peatonal (MA)</option>
+        </select>
+        <p id="tipoAyuda" class="ayuda"></p>
+
+        <div class="form-group" id="fNombre">
+            <label for="nombreBloque" id="lblNombre">Nombre del equipo</label>
             <input type="text" id="nombreBloque" placeholder="Ej. Horno 1" maxlength="60">
         </div>
-        <div class="form-group">
-            <label for="categoriaBloque">Categoría</label>
-            <select id="categoriaBloque">
-                <option value="objeto">Equipo / objeto (EQ)</option>
-                <option value="edificacion">Edificación (E)</option>
-                <option value="muro">Muro divisorio interior (MD)</option>
-                <option value="libre">Espacio libre: pasillo, zona peatonal (MA)</option>
+
+        <div class="form-group fila-campos" id="fMedidas">
+            <div><label for="anchoBloque" id="lblAncho">Ancho (m)</label>
+                <input type="number" id="anchoBloque" value="2.95" step="0.05" min="0.05"></div>
+            <div><label for="fondoBloque" id="lblFondo">Fondo (m)</label>
+                <input type="number" id="fondoBloque" value="5.5" step="0.05" min="0.05"></div>
+        </div>
+
+        <div class="form-group" id="fEspesor">
+            <label for="espesorMuro">Espesor del muro</label>
+            <select id="espesorMuro">
+                <option value="0.10">0.10 m — tabique delgado</option>
+                <option value="0.15" selected>0.15 m — muro de bloque</option>
+                <option value="0.20">0.20 m — muro grueso</option>
+                <option value="0.25">0.25 m — muro estructural</option>
             </select>
         </div>
-        <div id="optObjeto" class="form-group">
+
+        <div class="form-group" id="fAlto">
+            <label for="altoBloque">Alto (m) — para la vista 3D</label>
+            <input type="number" id="altoBloque" value="2" step="0.1" min="0.1">
+        </div>
+
+        <div class="form-group" id="fPeso">
+            <label for="pesoBloque">Peso (kg, opcional)</label>
+            <input type="number" id="pesoBloque" value="0" min="0">
+        </div>
+
+        <div class="form-group" id="fMarca">
             <label class="chk"><input type="checkbox" id="conMarca" checked> Con marcación (franja amarilla y negra)</label>
             <select id="anchoMarca">
                 <option value="20">Ancho de franja: 20 cm</option>
                 <option value="15">Ancho de franja: 15 cm</option>
             </select>
-            <label class="chk" style="margin-top:8px"><input type="checkbox" id="esStand"> Es stand con niveles</label>
+        </div>
+
+        <div class="form-group" id="fStand">
+            <label class="chk"><input type="checkbox" id="esStand"> Es stand con niveles</label>
             <div id="standCampos" class="fila-campos">
                 <div><label for="nivelesStand">Niveles</label><input type="number" id="nivelesStand" value="3" min="1"></div>
                 <div><label for="altoNivel">Alto/nivel (m)</label><input type="number" id="altoNivel" value="1.2" step="0.1"></div>
@@ -101,28 +141,8 @@
                 <div><label for="sepRepisa">Espacio (m)</label><input type="number" id="sepRepisa" value="0.36" step="0.01" min="0.05"></div>
             </div>
         </div>
-        <div id="optMuro" class="form-group" style="display:none">
-            <label for="espesorMuro">Espesor del muro</label>
-            <select id="espesorMuro">
-                <option value="0.10">0.10 m — tabique delgado</option>
-                <option value="0.15" selected>0.15 m — muro de bloque</option>
-                <option value="0.20">0.20 m — muro grueso</option>
-                <option value="0.25">0.25 m — muro estructural</option>
-            </select>
-        </div>
-        <div class="form-group fila-campos">
-            <div><label for="anchoBloque">Ancho / largo (m)</label><input type="number" id="anchoBloque" value="2.95" step="0.1" min="0.1"></div>
-            <div><label for="fondoBloque">Fondo / espesor (m)</label><input type="number" id="fondoBloque" value="5.5" step="0.1" min="0.1"></div>
-        </div>
-        <div class="form-group">
-            <label for="altoBloque">Alto (m) — para la vista 3D</label>
-            <input type="number" id="altoBloque" value="2" step="0.1" min="0.1">
-        </div>
-        <div class="form-group">
-            <label for="pesoBloque">Peso (kg, opcional)</label>
-            <input type="number" id="pesoBloque" value="0" min="0">
-        </div>
-        <div class="form-group fila-campos">
+
+        <div class="form-group fila-campos" id="fCant">
             <div><label for="cantBloque">Cantidad</label><input type="number" id="cantBloque" value="1" min="1" max="50"></div>
             <div><label for="pasoMover">Paso al mover</label>
                 <select id="pasoMover">
@@ -135,20 +155,23 @@
                 </select>
             </div>
         </div>
-        <div class="form-group">
-            <label for="destino">Colocar dentro de</label>
-            <select id="destino"><option value="">— En la bodega —</option></select>
+
+        <div class="form-group" id="fDestino">
+            <label for="destino">Guardar dentro de un stand</label>
+            <select id="destino"><option value="">— No, va en el plano —</option></select>
             <div id="nivelWrap" style="display:none;margin-top:6px">
                 <label for="nivelDestino">Nivel</label>
                 <select id="nivelDestino"></select>
             </div>
         </div>
-        <div class="form-group">
+
+        <div class="form-group" id="fColor">
             <label for="colorBloque">Color</label>
             <input type="color" id="colorBloque" value="#3498db">
         </div>
-        <div class="form-group">
-            <label for="fotoBloque">Foto del equipo (opcional)</label>
+
+        <div class="form-group" id="fFoto">
+            <label for="fotoBloque" id="lblFoto">Foto del equipo (opcional)</label>
             <div class="fila-archivo">
                 <input type="file" id="fotoBloque" accept="image/*">
                 <button type="button" id="btnQuitarFotoBloque" class="btn-quitar" title="Quitar la foto elegida">✕</button>
@@ -161,6 +184,7 @@
                 <option value="contain">En el 3D: contener (bordes)</option>
             </select>
         </div>
+
         <button id="btnAgregar" class="btn-primario">+ Ubicar en el plano</button>
         <button id="btnDeshacer" class="btn-undo">↩️ Deshacer</button>
 
