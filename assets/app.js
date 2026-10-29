@@ -38,6 +38,7 @@ let histIdx = -1;
 
 let cam = { rx: -55, ry: -25, z: 1 };
 let mundoW = 0, mundoF = 0;
+let sprites = [];
 
 /* ---------------- utilidades ---------------- */
 const $ = id => document.getElementById(id);
@@ -162,6 +163,36 @@ function cargarFoto(file, cb, maxPx) {
   r.readAsDataURL(file);
 }
 
+function recortarFondo(url, cb) {
+  const img = new Image();
+  img.onload = () => {
+    try {
+      const c = document.createElement('canvas');
+      c.width = img.width; c.height = img.height;
+      const ctx = c.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      const d = ctx.getImageData(0, 0, c.width, c.height);
+      const px = d.data;
+      const corners = [[0, 0], [c.width - 1, 0], [0, c.height - 1], [c.width - 1, c.height - 1]];
+      let r = 0, g = 0, b = 0;
+      corners.forEach(([x, y]) => {
+        const i = (y * c.width + x) * 4;
+        r += px[i]; g += px[i + 1]; b += px[i + 2];
+      });
+      r /= 4; g /= 4; b /= 4;
+      const tol = 46;
+      for (let i = 0; i < px.length; i += 4) {
+        const dr = px[i] - r, dg = px[i + 1] - g, db = px[i + 2] - b;
+        if (Math.sqrt(dr * dr + dg * dg + db * db) < tol) px[i + 3] = 0;
+      }
+      ctx.putImageData(d, 0, 0);
+      cb(c.toDataURL('image/png'));
+    } catch (e) { cb(null); }
+  };
+  img.onerror = () => cb(null);
+  img.src = url;
+}
+
 function cargarPared(inp) {
   const clave = inp.dataset.pared;
   const f = inp.files && inp.files[0];
@@ -254,7 +285,7 @@ function agregarBloque() {
   const destino = $('destino').value;
   const file = $('fotoBloque').files && $('fotoBloque').files[0];
 
-  const seguir = (fotoUrl) => {
+  const seguir = (fotoUrl, silueta) => {
     if (destino && b.cat !== 'libre') {
       let n = 0;
       for (let i = 0; i < cant; i++) {
@@ -266,19 +297,25 @@ function agregarBloque() {
       if (n) { render(); guardarHistorial(); $('nombreBloque').value = ''; }
       return;
     }
-    iniciarColocacion(b, cant, fotoUrl);
+    iniciarColocacion(b, cant, fotoUrl, silueta);
   };
 
-  if (!file) { seguir(null); return; }
-  cargarFoto(file, url => seguir(url), 500);
+  if (!file) { seguir(null, false); return; }
+  cargarFoto(file, url => {
+    if (url && $('fotoSilueta') && $('fotoSilueta').checked) {
+      recortarFondo(url, out => seguir(out || url, !!out));
+    } else {
+      seguir(url, false);
+    }
+  }, 900);
 }
 
 /* ---------- modo colocación: se hace clic donde uno quiere ---------- */
 let colocando = null;
 
-function iniciarColocacion(b, cant, fotoUrl) {
+function iniciarColocacion(b, cant, fotoUrl, silueta) {
   cancelarColocacion();
-  colocando = { b: b, cant: cant, restantes: cant, foto: fotoUrl };
+  colocando = { b: b, cant: cant, restantes: cant, foto: fotoUrl, silueta: !!silueta };
   document.body.classList.add('colocando');
   const bod = $('bodega');
   const g = document.createElement('div');
@@ -328,6 +365,7 @@ function colocarEnPunto(px, py) {
     const fid = 'f' + (++fotoSeq);
     fotos[fid] = c.foto;
     b.foto = fid;
+    b.silueta = !!c.silueta;
     guardarFotosLocal();
   }
   const bod = $('bodega');
@@ -955,12 +993,20 @@ function cara(w, h, transform, estilo, html) {
   return c;
 }
 
+function orientarSprites() {
+  sprites.forEach(sp => {
+    sp.style.transform = 'translate3d(' + sp.dataset.x + 'px,' + sp.dataset.y + 'px,' + sp.dataset.z +
+      'px) translateX(-50%) rotateY(' + (-cam.ry) + 'deg)';
+  });
+}
+
 function aplicarCamara() {
   cam.rx = Math.max(-90, Math.min(-5, cam.rx));
   cam.z = Math.max(0.2, Math.min(6, cam.z));
   $('escena3d').style.transform =
     'scale(' + cam.z + ') rotateX(' + cam.rx + 'deg) rotateY(' + cam.ry + 'deg) translate3d(' +
     (-mundoW / 2) + 'px, 0px, ' + (-mundoF / 2) + 'px)';
+  orientarSprites();
 }
 
 function abrir3D() {
@@ -1002,6 +1048,20 @@ function abrir3D() {
     const h = (esMarca ? 0.05 : b.h) * ESCALA;
     const medidas = b.a.toFixed(2) + ' × ' + b.f.toFixed(2) + (esMarca ? '' : ' × ' + b.h.toFixed(2)) + ' m';
     const base = { backgroundColor: b.color };
+    if (b.foto && fotos[b.foto] && b.silueta) {
+      const sp = cara(w, h, '', {
+        backgroundImage: 'url("' + fotos[b.foto] + '")',
+        backgroundSize: 'contain', backgroundPosition: 'center bottom',
+        backgroundRepeat: 'no-repeat', outline: 'none'
+      });
+      sp.className = 'cara3d sprite3d';
+      sp.dataset.x = (l + w / 2);
+      sp.dataset.y = -h;
+      sp.dataset.z = (t + d / 2);
+      sprites.push(sp);
+      mundo.appendChild(sp);
+      return;                       // con silueta no dibujamos el cubo
+    }
     const ajusteFoto = ($('ajusteFoto') && $('ajusteFoto').value) || 'cover';
     const lado = br => {
       const e = Object.assign({}, base, { filter: 'brightness(' + br + ')' });
@@ -1543,6 +1603,21 @@ function correrTest() {
     SNAP = 0.2;  const p1  = Math.round(11 / SNAP) * SNAP;   // 11 px = 0.55 m
     SNAP = antes;
     return p25 === 10 && p10 === 12 && Math.abs(p1 - 11) < 1e-6;
+  });
+
+  t('foto recortada se dibuja como imagen 3D (sprite)', () => {
+    fotos['fs'] = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+    $('nombreBloque').value = 'Yale';
+    $('anchoBloque').value = 0.8; $('fondoBloque').value = 1.6; $('altoBloque').value = 1.6;
+    agregarBloqueAuto();
+    const b = estado.bloques.filter(x => x.nombre === 'Yale').pop();
+    if (!b) return false;
+    b.foto = 'fs'; b.silueta = true;
+    abrir3D();
+    const sp = document.querySelector('.sprite3d');
+    const altoOk = sp && Math.abs(parseFloat(sp.style.height) - 1.6 * ESCALA) < 0.5;
+    cerrar3D();
+    return !!sp && altoOk;
   });
 
   cont.textContent = res.join('\n');
