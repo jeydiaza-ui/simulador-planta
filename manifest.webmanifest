@@ -1,0 +1,20 @@
+{
+  "name": "Simulador de Planta CTC Energy",
+  "short_name": "Simulador CTC",
+  "description": "Dibuja a escala la distribución de tu taller o bodega, ubica equipos y visualízalo en 3D.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#e0e0e0",
+  "theme_color": "#1B2A3A",
+  "lang": "es",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='96' fill='%231B2A3A'/%3E%3Cpath d='M112 368V208l80 48v-48l80 48v-48l80 48v112z' fill='%23FFC300'/%3E%3C/svg%3E",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="description" content="Simulador de distribución en planta (layout) para talleres y bodegas: dibuja el plano a escala, ubica equipos, puertas y ventanas, y míralo en 3D.">
+    <meta name="theme-color" content="#1B2A3A">
+    <meta property="og:title" content="Simulador de Planta CTC Energy">
+    <meta property="og:description" content="Dibuja tu taller a escala, ubica equipos y visualízalo en 3D. Funciona sin conexión.">
+    <meta property="og:type" content="website">
+    <title>Simulador de Planta CTC Energy</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%231B2A3A'/%3E%3Cpath d='M14 46V26l10 6v-6l10 6v-6l10 6v14z' fill='%23FFC300'/%3E%3C/svg%3E">
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+    <button id="btn-panel" class="btn-panel" aria-controls="panel" aria-expanded="false" title="Mostrar/ocultar panel">☰</button>
+
+    <aside id="panel">
+        <h2>1. Crear Bodega</h2>
+        <div class="form-group">
+            <label for="anchoBodega">Ancho (metros)</label>
+            <input type="number" id="anchoBodega" value="10.13" step="0.1" min="1">
+        </div>
+        <div class="form-group">
+            <label for="fondoBodega">Fondo (metros)</label>
+            <input type="number" id="fondoBodega" value="20.45" step="0.1" min="1">
+        </div>
+        <button id="btnCrearBodega" class="btn-primario">Generar Lienzo</button>
+
+        <div id="totales" aria-live="polite">
+            <p><span>Área Total:</span> <span id="txtTotal">0 m²</span></p>
+            <p><span>Área Ocupada:</span> <span id="txtOcupada">0 m²</span></p>
+            <p class="alerta"><span>Área Libre:</span> <span id="txtLibre">0 m²</span></p>
+        </div>
+
+        <h2>2. Agregar Equipo</h2>
+        <div class="form-group">
+            <label for="nombreBloque">Nombre</label>
+            <input type="text" id="nombreBloque" placeholder="Ej. Horno 1" maxlength="60">
+        </div>
+        <div class="form-group">
+            <label for="categoriaBloque">Categoría</label>
+            <select id="categoriaBloque">
+                <option value="objeto">Equipo / objeto (EQ)</option>
+                <option value="edificacion">Edificación (E)</option>
+                <option value="libre">Espacio libre: pasillo, zona peatonal (MA)</option>
+            </select>
+        </div>
+        <div id="optObjeto" class="form-group">
+            <label class="chk"><input type="checkbox" id="conMarca" checked> Con marcación (franja amarilla y negra)</label>
+            <select id="anchoMarca">
+                <option value="20">Ancho de franja: 20 cm</option>
+                <option value="15">Ancho de franja: 15 cm</option>
+            </select>
+            <label class="chk" style="margin-top:8px"><input type="checkbox" id="esStand"> Es stand con niveles</label>
+            <div id="standCampos" class="fila-campos">
+                <div><label for="nivelesStand">Niveles</label><input type="number" id="nivelesStand" value="3" min="1"></div>
+                <div><label for="altoNivel">Alto/nivel (m)</label><input type="number" id="altoNivel" value="1.2" step="0.1"></div>
+                <div><label for="cargaNivel">Carga/nivel (kg)</label><input type="number" id="cargaNivel" value="0" min="0"></div>
+            </div>
+            <label class="chk" style="margin-top:8px"><input type="checkbox" id="esEstante"> Dibujar en 3D como estante metálico</label>
+            <div id="estanteCampos" class="fila-campos">
+                <div><label for="nRepisas">Repisas</label><input type="number" id="nRepisas" value="6" min="1"></div>
+                <div><label for="h0Repisa">1ª a (m)</label><input type="number" id="h0Repisa" value="0.1" step="0.01" min="0"></div>
+                <div><label for="sepRepisa">Espacio (m)</label><input type="number" id="sepRepisa" value="0.36" step="0.01" min="0.05"></div>
+            </div>
+        </div>
+        <div class="form-group fila-campos">
+            <div><label for="anchoBloque">Ancho (m)</label><input type="number" id="anchoBloque" value="2.95" step="0.1" min="0.1"></div>
+            <div><label for="fondoBloque">Fondo (m)</label><input type="number" id="fondoBloque" value="5.5" step="0.1" min="0.1"></div>
+        </div>
+        <div class="form-group">
+            <label for="altoBloque">Alto (m) — para la vista 3D</label>
+            <input type="number" id="altoBloque" value="2" step="0.1" min="0.1">
+        </div>
+        <div class="form-group">
+            <label for="pesoBloque">Peso (kg, opcional)</label>
+            <input type="number" id="pesoBloque" value="0" min="0">
+        </div>
+        <div class="form-group fila-campos">
+            <div><label for="cantBloque">Cantidad</label><input type="number" id="cantBloque" value="1" min="1" max="50"></div>
+            <div><label for="pasoMover">Paso al mover</label>
+                <select id="pasoMover">
+                    <option value="20">1 m</option>
+                    <option value="10">50 cm</option>
+                    <option value="2">10 cm</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="destino">Colocar dentro de</label>
+            <select id="destino"><option value="">— En la bodega —</option></select>
+            <div id="nivelWrap" style="display:none;margin-top:6px">
+                <label for="nivelDestino">Nivel</label>
+                <select id="nivelDestino"></select>
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="colorBloque">Color</label>
+            <input type="color" id="colorBloque" value="#3498db">
+        </div>
+        <div class="form-group">
+            <label for="fotoBloque">Foto del equipo (opcional)</label>
+            <input type="file" id="fotoBloque" accept="image/*">
+        </div>
+        <button id="btnAgregar" class="btn-primario">+ Agregar Bloque</button>
+        <button id="btnDeshacer" class="btn-undo">↩️ Deshacer</button>
+
+        <h2 style="margin-top:20px;">3. Paredes (vista 3D)</h2>
+        <div class="form-group fila-campos">
+            <div><label for="altoPared">Alto paredes (m)</label><input type="number" id="altoPared" value="4" step="0.1" min="1"></div>
+            <div><label for="colorPared">Color base</label><input type="color" id="colorPared" value="#e6e2da"></div>
+        </div>
+        <div class="form-group"><label for="fotoParedArriba">Foto pared de ARRIBA (fondo)</label><input type="file" id="fotoParedArriba" accept="image/*" data-pared="arriba"></div>
+        <div class="form-group"><label for="fotoParedAbajo">Foto pared de ABAJO (entrada)</label><input type="file" id="fotoParedAbajo" accept="image/*" data-pared="abajo"></div>
+        <div class="form-group"><label for="fotoParedIzq">Foto pared IZQUIERDA</label><input type="file" id="fotoParedIzq" accept="image/*" data-pared="izq"></div>
+        <div class="form-group"><label for="fotoParedDer">Foto pared DERECHA</label><input type="file" id="fotoParedDer" accept="image/*" data-pared="der"></div>
+        <div class="form-group">
+            <label for="ajustePared">Ajuste de las fotos de pared</label>
+            <select id="ajustePared">
+                <option value="100% 100%">Estirar (se ve la foto completa)</option>
+                <option value="cover">Llenar (recorta los bordes)</option>
+            </select>
+        </div>
+
+        <h2 style="margin-top:20px;">4. Puertas y ventanas</h2>
+        <div class="form-group">
+            <label for="abDueno">En</label>
+            <select id="abDueno"><option value="bodega">Bodega (paredes exteriores)</option></select>
+        </div>
+        <div class="form-group fila-campos">
+            <div><label for="abPared">Pared</label>
+                <select id="abPared"><option value="arriba">Arriba</option><option value="abajo">Abajo</option><option value="izq">Izquierda</option><option value="der">Derecha</option></select>
+            </div>
+            <div><label for="abTipo">Tipo</label>
+                <select id="abTipo"><option value="puerta">Puerta</option><option value="ventana">Ventana</option><option value="hueco">Abertura sin puerta</option></select>
+            </div>
+        </div>
+        <div class="form-group fila-campos">
+            <div><label for="abAncho">Ancho (m)</label><input type="number" id="abAncho" value="1" step="0.1" min="0.1"></div>
+            <div><label for="abAlto">Alto (m)</label><input type="number" id="abAlto" value="2.1" step="0.1" min="0.1"></div>
+        </div>
+        <div class="form-group fila-campos">
+            <div><label for="abDesde">Desde el piso (m)</label><input type="number" id="abDesde" value="0" step="0.1" min="0"></div>
+            <div><label for="abPos">Posición (m)</label><input type="number" id="abPos" value="" placeholder="centrada" step="0.1" min="0"></div>
+        </div>
+        <p class="ayuda">*Si la dejas vacía queda centrada; después la mueves con la barra o arrastrándola.</p>
+        <button id="btnAgregarAb" class="btn-primario">+ Agregar abertura</button>
+        <div id="listaAb" class="lista-ab"></div>
+
+        <hr>
+        <button id="btn3D" class="btn-3d">🧊 Ver en 3D</button>
+        <button id="btnImprimir" class="btn-print">🖨️ Imprimir / PDF</button>
+        <div class="fila-campos" style="margin-top:10px">
+            <button id="btnExportar" class="btn-sec">⬇ JSON</button>
+            <button id="btnImportar" class="btn-sec">⬆ JSON</button>
+        </div>
+        <input type="file" id="fileImportar" accept="application/json,.json" hidden>
+        <button id="btnBorrarTodo" class="btn-borrar">Borrar todo</button>
+        <p class="pie">v1.1 · Los datos se guardan en este navegador.</p>
+    </aside>
+
+    <main id="workspace">
+        <div id="zoom-controls">
+            <button id="btnMenos" title="Alejar">−</button>
+            <span id="txtZoom">100%</span>
+            <button id="btnMas" title="Acercar">+</button>
+        </div>
+        <div id="wrapper">
+            <div id="regla-x" aria-hidden="true"></div>
+            <div id="regla-y" aria-hidden="true"></div>
+            <div id="bodega"></div>
+        </div>
+        <div id="leyenda"></div>
+    </main>
+
+    <div id="vista3d" role="dialog" aria-modal="true" aria-label="Vista 3D">
+        <div id="barra3d">
+            <button id="btnCerrar3D">✕ Cerrar 3D</button>
+            <span class="ayuda3d">Arrastra para girar · rueda para acercar</span>
+        </div>
+        <div id="escena3d"><div id="mundo3d"></div></div>
+    </div>
+
+    <div id="avisos" aria-live="polite"></div>
+    <div id="selftest" hidden></div>
+
+    <script src="assets/app.js"></script>
+</body>
+</html>
