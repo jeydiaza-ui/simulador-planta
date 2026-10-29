@@ -9,7 +9,7 @@ const ESCALA = 20;                 // px por metro
 const LS_KEY = 'ctc_simulador_v1';
 const MAX_HIST = 40;
 const NOM_TIPO = { puerta: 'Puerta', ventana: 'Ventana', hueco: 'Abertura sin puerta' };
-const COLORES = { objeto: '#f1c40f', edificacion: '#3498db', libre: '#7dcea0' };
+const COLORES = { objeto: '#f1c40f', edificacion: '#3498db', muro: '#5d6d7e', libre: '#7dcea0' };
 
 /* ---------------- estado ---------------- */
 let estado = { ancho: 10.13, fondo: 20.45, bloques: [], aberturas: [] };
@@ -228,7 +228,7 @@ function leerFormulario() {
 }
 
 function siguienteCodigo(cat) {
-  const pre = { objeto: 'EQ', edificacion: 'E', libre: 'MA' }[cat];
+  const pre = { objeto: 'EQ', edificacion: 'E', muro: 'MD', libre: 'MA' }[cat];
   let max = 0;
   estado.bloques.forEach(b => {
     if (b.cat === cat) max = Math.max(max, parseInt((b.cod || '').slice(pre.length), 10) || 0);
@@ -647,7 +647,7 @@ function refrescarDuenos() {
   const o = document.createElement('option');
   o.value = 'bodega'; o.textContent = 'Bodega (paredes exteriores)';
   sel.appendChild(o);
-  estado.bloques.filter(b => b.cat === 'edificacion').forEach(b => {
+  estado.bloques.filter(b => b.cat === 'edificacion' || b.cat === 'muro').forEach(b => {
     const op = document.createElement('option');
     op.value = b.id; op.textContent = (b.cod ? b.cod + ' ' : '') + b.nombre;
     sel.appendChild(op);
@@ -764,6 +764,7 @@ function construirLeyenda() {
   if (!estado.bloques.length) { cont.appendChild(el('p', 'Sin elementos en el plano.')); return; }
 
   [['libre', 'ESPACIOS LIBRES (PASILLOS / ZONA PEATONAL)'],
+   ['muro', 'MUROS DIVISORIOS'],
    ['objeto', 'OBJETOS'],
    ['edificacion', 'EDIFICACIONES']].forEach(([clave, titulo]) => {
     const items = estado.bloques.filter(w => w.cat === clave);
@@ -862,6 +863,7 @@ function abrir3D() {
     backgroundSize: ESCALA + 'px ' + ESCALA + 'px', backgroundRepeat: 'repeat'
   }));
 
+  const verTechos = $('verTechos') && $('verTechos').checked;
   const hP = (num($('altoPared').value, 4)) * ESCALA;
   const colP = $('colorPared').value;
   const ajuste = $('ajustePared').value;
@@ -898,8 +900,11 @@ function abrir3D() {
     // solo rotulamos la cara superior si el equipo es grande (si no, se solapan los textos)
     const etiqueta = (b.a * b.f >= 1.4)
       ? '<span>' + escapar(b.nombre) + '<br>' + medidas + '</span>' : '';
-    mundo.appendChild(cara(w, d, 'translate3d(' + l + 'px, ' + (-h) + 'px, ' + t + 'px) rotateX(90deg)',
-      Object.assign({}, base, { transformOrigin: '0 0' }), etiqueta));
+    const cerrado = (b.cat === 'objeto' || b.cat === 'libre') || verTechos;
+    if (cerrado) {
+      mundo.appendChild(cara(w, d, 'translate3d(' + l + 'px, ' + (-h) + 'px, ' + t + 'px) rotateX(90deg)',
+        Object.assign({}, base, { transformOrigin: '0 0' }), etiqueta));
+    }
     mundo.appendChild(cara(w, h, 'translate3d(' + l + 'px, ' + (-h) + 'px, ' + (t + d) + 'px)', lado(1), abHTML(b.id, 'abajo', b.a, h, false)));
     mundo.appendChild(cara(w, h, 'translate3d(' + l + 'px, ' + (-h) + 'px, ' + t + 'px) rotateY(180deg)', lado(0.7), abHTML(b.id, 'arriba', b.a, h, true)));
     mundo.appendChild(cara(d, h, 'translate3d(' + (l - d / 2) + 'px, ' + (-h) + 'px, ' + (t + d / 2) + 'px) rotateY(-90deg)', lado(0.85), abHTML(b.id, 'izq', b.f, h, false)));
@@ -1035,7 +1040,7 @@ function iniciar() {
   });
   $('btnBorrarTodo').addEventListener('click', () => borrarTodo(false));
 
-  $('categoriaBloque').addEventListener('change', cambiarCategoria);
+  $('categoriaBloque').addEventListener('change', () => cambiarCategoria(true));
   $('esStand').addEventListener('change', e => { $('standCampos').style.display = e.target.checked ? 'flex' : 'none'; });
   $('esEstante').addEventListener('change', e => { $('estanteCampos').style.display = e.target.checked ? 'flex' : 'none'; });
   $('pasoMover').addEventListener('change', e => { SNAP = parseInt(e.target.value, 10) || 20; });
@@ -1113,10 +1118,23 @@ function quitarFotoEquipo() {
   aviso('Foto del equipo quitada');
 }
 
-function cambiarCategoria() {
+const TAM_DEFECTO = {
+  objeto: [2.00, 1.00, 2.00],
+  edificacion: [3.00, 2.50, 2.60],
+  muro: [2.00, 0.10, 2.40],
+  libre: [1.00, 0.60, 0.05]
+};
+
+function cambiarCategoria(ponerDefecto) {
   const c = $('categoriaBloque').value;
   $('colorBloque').value = COLORES[c];
   $('optObjeto').style.display = c === 'objeto' ? 'block' : 'none';
+  if (ponerDefecto && TAM_DEFECTO[c]) {
+    const [a, f, al] = TAM_DEFECTO[c];
+    $('anchoBloque').value = a;
+    $('fondoBloque').value = f;
+    $('altoBloque').value = al;
+  }
 }
 
 /* ============================================================
@@ -1246,6 +1264,26 @@ function correrTest() {
     borrarTodo(true);
     return estado.bloques.length === 0 && estado.aberturas.length === 0 &&
            Object.keys(fotosPared).length === 0 && Object.keys(fotos).length === 0;
+  });
+
+  t('muro divisorio con espesor 0.10', () => {
+    $('categoriaBloque').value = 'muro';
+    cambiarCategoria(true);
+    const okDef = (num($('fondoBloque').value) === 0.10);
+    $('nombreBloque').value = 'Divisorio';
+    agregarBloque();
+    const m = estado.bloques.filter(b => b.cat === 'muro').pop();
+    $('categoriaBloque').value = 'objeto';
+    cambiarCategoria(true);
+    return okDef && !!m && m.cod.indexOf('MD') === 0 && Math.abs(m.f - 0.10) < 1e-9;
+  });
+
+  t('3D sin techos no rompe con muros', () => {
+    if ($('verTechos')) $('verTechos').checked = false;
+    abrir3D();
+    const n = document.querySelectorAll('.cara3d').length;
+    cerrar3D();
+    return n > 8;
   });
 
   cont.textContent = res.join('\n');

@@ -44,6 +44,7 @@
             <select id="categoriaBloque">
                 <option value="objeto">Equipo / objeto (EQ)</option>
                 <option value="edificacion">Edificación (E)</option>
+                <option value="muro">Muro divisorio interior (MD)</option>
                 <option value="libre">Espacio libre: pasillo, zona peatonal (MA)</option>
             </select>
         </div>
@@ -142,6 +143,10 @@
                 <input type="file" id="fotoParedDer" accept="image/*" data-pared="der">
                 <button type="button" class="btn-quitar" data-quitar="der" title="Quitar esta foto" aria-label="Quitar foto pared derecha">✕</button>
             </div>
+        </div>
+        <div class="form-group">
+            <label class="chk"><input type="checkbox" id="verTechos"> Mostrar techos en 3D
+                <span style="font-weight:400;color:#888">(apagado = se ve el interior)</span></label>
         </div>
         <div class="form-group">
             <label for="ajustePared">Ajuste de las fotos de pared</label>

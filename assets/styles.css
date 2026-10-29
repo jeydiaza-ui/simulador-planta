@@ -148,6 +148,13 @@ hr { border: 0; border-top: 1px solid #eee; margin: 18px 0; }
 
 .bloque-wrapper[data-categoria="libre"] .bloque { border: 2px dashed #1e8449; }
 
+/* muros divisorios: se dibujan como una linea gruesa */
+.bloque-wrapper[data-categoria="muro"] .bloque { border: 1.5px solid #1B4F72; background-color: #5D6D7E !important; }
+.bloque-wrapper[data-categoria="muro"] .bloque-content { display: none; }
+.bloque-wrapper[data-categoria="muro"] .bloque { overflow: visible; }
+.bloque-wrapper[data-categoria="muro"] .btn-del,
+.bloque-wrapper[data-categoria="muro"] .btn-rot { transform: scale(.8); }
+
 /* aberturas (puertas / ventanas) */
 .ab-ov { position: absolute; z-index: 7; pointer-events: auto; cursor: move; touch-action: none; box-sizing: border-box; }
 .ab-ov::after { content: ''; position: absolute; top: -7px; left: -7px; right: -7px; bottom: -7px; }
