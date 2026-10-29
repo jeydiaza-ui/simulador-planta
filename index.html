@@ -102,7 +102,10 @@
         </div>
         <div class="form-group">
             <label for="fotoBloque">Foto del equipo (opcional)</label>
-            <input type="file" id="fotoBloque" accept="image/*">
+            <div class="fila-archivo">
+                <input type="file" id="fotoBloque" accept="image/*">
+                <button type="button" id="btnQuitarFotoBloque" class="btn-quitar" title="Quitar la foto elegida">✕</button>
+            </div>
         </div>
         <button id="btnAgregar" class="btn-primario">+ Agregar Bloque</button>
         <button id="btnDeshacer" class="btn-undo">↩️ Deshacer</button>
@@ -112,10 +115,34 @@
             <div><label for="altoPared">Alto paredes (m)</label><input type="number" id="altoPared" value="4" step="0.1" min="1"></div>
             <div><label for="colorPared">Color base</label><input type="color" id="colorPared" value="#e6e2da"></div>
         </div>
-        <div class="form-group"><label for="fotoParedArriba">Foto pared de ARRIBA (fondo)</label><input type="file" id="fotoParedArriba" accept="image/*" data-pared="arriba"></div>
-        <div class="form-group"><label for="fotoParedAbajo">Foto pared de ABAJO (entrada)</label><input type="file" id="fotoParedAbajo" accept="image/*" data-pared="abajo"></div>
-        <div class="form-group"><label for="fotoParedIzq">Foto pared IZQUIERDA</label><input type="file" id="fotoParedIzq" accept="image/*" data-pared="izq"></div>
-        <div class="form-group"><label for="fotoParedDer">Foto pared DERECHA</label><input type="file" id="fotoParedDer" accept="image/*" data-pared="der"></div>
+        <div class="form-group">
+            <label for="fotoParedArriba">Foto pared de ARRIBA (fondo)</label>
+            <div class="fila-archivo">
+                <input type="file" id="fotoParedArriba" accept="image/*" data-pared="arriba">
+                <button type="button" class="btn-quitar" data-quitar="arriba" title="Quitar esta foto" aria-label="Quitar foto pared de arriba (fondo)">✕</button>
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="fotoParedAbajo">Foto pared de ABAJO (entrada)</label>
+            <div class="fila-archivo">
+                <input type="file" id="fotoParedAbajo" accept="image/*" data-pared="abajo">
+                <button type="button" class="btn-quitar" data-quitar="abajo" title="Quitar esta foto" aria-label="Quitar foto pared de abajo (entrada)">✕</button>
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="fotoParedIzq">Foto pared IZQUIERDA</label>
+            <div class="fila-archivo">
+                <input type="file" id="fotoParedIzq" accept="image/*" data-pared="izq">
+                <button type="button" class="btn-quitar" data-quitar="izq" title="Quitar esta foto" aria-label="Quitar foto pared izquierda">✕</button>
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="fotoParedDer">Foto pared DERECHA</label>
+            <div class="fila-archivo">
+                <input type="file" id="fotoParedDer" accept="image/*" data-pared="der">
+                <button type="button" class="btn-quitar" data-quitar="der" title="Quitar esta foto" aria-label="Quitar foto pared derecha">✕</button>
+            </div>
+        </div>
         <div class="form-group">
             <label for="ajustePared">Ajuste de las fotos de pared</label>
             <select id="ajustePared">

@@ -154,11 +154,39 @@ function cargarFoto(file, cb, maxPx) {
 function cargarPared(inp) {
   const clave = inp.dataset.pared;
   const f = inp.files && inp.files[0];
-  if (!f) { delete fotosPared[clave]; return; }
+  if (!f) return;
   cargarFoto(f, url => {
-    if (url) { fotosPared[clave] = url; ok('Foto de pared cargada'); }
-    else error('No se pudo leer la foto');
+    if (url) {
+      fotosPared[clave] = url;
+      marcarFotoPared(clave, true);
+      ok('Foto de pared cargada');
+    } else {
+      error('No se pudo leer la foto');
+    }
+    inp.value = '';            // permite volver a elegir el mismo archivo
   }, 1600);
+}
+
+function marcarFotoPared(clave, tiene) {
+  const btn = document.querySelector('[data-quitar="' + clave + '"]');
+  if (btn) btn.classList.toggle('off', !tiene);
+}
+
+function quitarFotoPared(clave) {
+  delete fotosPared[clave];
+  const inp = document.querySelector('input[data-pared="' + clave + '"]');
+  if (inp) inp.value = '';
+  marcarFotoPared(clave, false);
+  aviso('Foto quitada');
+}
+
+function limpiarFotosPared() {
+  Object.keys(fotosPared).forEach(k => delete fotosPared[k]);
+  ['arriba', 'abajo', 'izq', 'der'].forEach(k => {
+    const inp = document.querySelector('input[data-pared="' + k + '"]');
+    if (inp) inp.value = '';
+    marcarFotoPared(k, false);
+  });
 }
 
 /* ============================================================
@@ -1005,11 +1033,7 @@ function iniciar() {
     if (f) importarJSON(f);
     e.target.value = '';
   });
-  $('btnBorrarTodo').addEventListener('click', () => {
-    if (!confirm('¿Borrar todo el plano?')) return;
-    estado = { ancho: estado.ancho, fondo: estado.fondo, bloques: [], aberturas: [] };
-    render(); listarAb(); guardarHistorial();
-  });
+  $('btnBorrarTodo').addEventListener('click', () => borrarTodo(false));
 
   $('categoriaBloque').addEventListener('change', cambiarCategoria);
   $('esStand').addEventListener('change', e => { $('standCampos').style.display = e.target.checked ? 'flex' : 'none'; });
@@ -1019,6 +1043,10 @@ function iniciar() {
   ['fotoParedArriba', 'fotoParedAbajo', 'fotoParedIzq', 'fotoParedDer'].forEach(id => {
     const el = $(id); if (el) el.addEventListener('change', () => cargarPared(el));
   });
+  document.querySelectorAll('[data-quitar]').forEach(btn => {
+    btn.addEventListener('click', () => quitarFotoPared(btn.dataset.quitar));
+  });
+  $('btnQuitarFotoBloque').addEventListener('click', quitarFotoEquipo);
 
   // panel móvil
   const panel = $('panel');
@@ -1064,6 +1092,25 @@ function iniciar() {
   }
 
   if (new URLSearchParams(location.search).has('selftest')) correrTest();
+}
+
+function borrarTodo(silencioso) {
+  const hayFotos = Object.keys(fotosPared).length > 0;
+  if (!silencioso && !confirm('¿Borrar todo el plano?' +
+      (hayFotos ? '\n\nTambién se quitarán las fotos de pared del 3D.' : ''))) return false;
+  estado = { ancho: estado.ancho, fondo: estado.fondo, bloques: [], aberturas: [] };
+  Object.keys(fotos).forEach(k => delete fotos[k]);
+  limpiarFotosPared();
+  const fb = $('fotoBloque'); if (fb) fb.value = '';
+  render(); listarAb(); guardarHistorial();
+  ok('Lienzo limpio');
+  return true;
+}
+
+function quitarFotoEquipo() {
+  const fb = $('fotoBloque');
+  if (fb) fb.value = '';
+  aviso('Foto del equipo quitada');
 }
 
 function cambiarCategoria() {
@@ -1182,6 +1229,23 @@ function correrTest() {
     const n = document.querySelectorAll('.cara3d').length;
     cerrar3D();
     return n > 10;
+  });
+
+  t('quitar foto de pared', () => {
+    fotosPared.arriba = 'data:image/png;base64,x';
+    marcarFotoPared('arriba', true);
+    quitarFotoPared('arriba');
+    return !fotosPared.arriba;
+  });
+
+  t('borrar todo limpia plano y fotos', () => {
+    fotosPared.izq = 'data:image/png;base64,y';
+    fotos['f9'] = 'data:image/png;base64,z';
+    $('nombreBloque').value = 'Temporal';
+    agregarBloque();
+    borrarTodo(true);
+    return estado.bloques.length === 0 && estado.aberturas.length === 0 &&
+           Object.keys(fotosPared).length === 0 && Object.keys(fotos).length === 0;
   });
 
   cont.textContent = res.join('\n');
