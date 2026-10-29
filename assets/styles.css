@@ -241,7 +241,14 @@ hr { border: 0; border-top: 1px solid #eee; margin: 18px 0; }
     #wrapper { transform: none !important; padding: 0; }
     #regla-x, #regla-y { display: none !important; }
     #bodega { box-shadow: none; border: 2px solid #000; }
-    .bloque { border: 1px solid #000 !important; }
+    .bloque { border: 1px solid #000 !important; font-size: 7px; line-height: 1.05; }
+    .bloque .area-txt { display: none; }
+    .bloque-content span { background: rgba(255,255,255,.92); padding: 0 1px; }
+    #leyenda { width: 292px; font-size: 8px; line-height: 1.25; }
+    #leyenda h3 { font-size: 12px; margin-bottom: 4px; }
+    #leyenda h4 { font-size: 9px; margin: 6px 0 2px; padding: 2px 4px; }
+    #leyenda th, #leyenda td { padding: 1.5px 3px; }
+    #leyenda .muestra { width: 10px; height: 10px; }
     .bloque .btn-del, .bloque .btn-rot { display: none !important; }
     .franja, .ab-ov, .bloque-foto, .muestra, #leyenda h4 {
         -webkit-print-color-adjust: exact; print-color-adjust: exact;

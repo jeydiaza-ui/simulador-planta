@@ -59,8 +59,21 @@ index.html               aplicación (todas las vistas)
 assets/styles.css        estilos (responsive + estilos de impresión)
 assets/app.js            lógica: modelo, render, colisiones, 3D, persistencia
 manifest.webmanifest     metadatos de instalación (PWA básica)
+docs/escenario-demo.json ejemplo de plano (10.90 × 19.45 m) para importar con "⬆ JSON"
+docs/informe-demo.pdf    informe de ejemplo generado a partir de ese escenario
 docs/                    capturas para el README
 ```
+
+## 🧾 Probar con el escenario de ejemplo
+
+1. Abre la app y pulsa **⬆ JSON** (abajo, en el panel).
+2. Selecciona `docs/escenario-demo.json`.
+3. Se carga una planta de 10.90 × 19.45 m con 6 edificaciones (oficina, recepción,
+   baños, vestier, cuarto eléctrico y almacén), 21 equipos con marcación amarilla y
+   negra, estanterías, 6 stands con niveles y 5 zonas de tránsito.
+4. Pulsa **🖨️ Imprimir / PDF** para obtener la lámina con el cuadro de áreas.
+
+El resultado de ese ejercicio está en `docs/informe-demo.pdf`.
 
 ## 🌐 Publicar en GitHub Pages
 
