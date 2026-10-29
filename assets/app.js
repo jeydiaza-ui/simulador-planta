@@ -19,6 +19,17 @@ let zTop = 1;
 let idSeq = 0;
 
 const fotos = {};                  // id -> dataURL (no se duplica en el historial)
+const LS_FOTOS = 'ctc_simulador_fotos_v1';
+
+function guardarFotosLocal() {
+  try { localStorage.setItem(LS_FOTOS, JSON.stringify(fotos)); } catch (_) { /* cuota llena */ }
+}
+function cargarFotosLocal() {
+  try {
+    const raw = localStorage.getItem(LS_FOTOS);
+    if (raw) Object.assign(fotos, JSON.parse(raw));
+  } catch (_) { }
+}
 let fotoSeq = 0;
 const fotosPared = {};
 
@@ -243,30 +254,125 @@ function agregarBloque() {
   const destino = $('destino').value;
   const file = $('fotoBloque').files && $('fotoBloque').files[0];
 
-  const crear = (fotoUrl) => {
-    let n = 0;
-    for (let i = 0; i < cant; i++) {
-      const copia = JSON.parse(JSON.stringify(b));
-      copia.id = nuevoId('b');
-      if (destino && b.cat !== 'libre') {
+  const seguir = (fotoUrl) => {
+    if (destino && b.cat !== 'libre') {
+      let n = 0;
+      for (let i = 0; i < cant; i++) {
+        const copia = JSON.parse(JSON.stringify(b));
+        copia.id = nuevoId('b');
         if (!meterEnStand(destino, copia)) break;
-        n++; continue;
+        n++;
       }
-      copia.cod = siguienteCodigo(b.cat);
-      if (fotoUrl) {
-        const fid = 'f' + (++fotoSeq);
-        fotos[fid] = fotoUrl; copia.foto = fid;
-      }
-      if (ubicar(copia)) n++;
-      else break;
+      if (n) { render(); guardarHistorial(); $('nombreBloque').value = ''; }
+      return;
     }
-    if (fotoUrl) $('fotoBloque').value = '';
-    if (n) { render(); guardarHistorial(); $('nombreBloque').value = ''; }
-    if (!destino) refrescarDestinos();
+    iniciarColocacion(b, cant, fotoUrl);
   };
 
-  if (!file) { crear(null); return; }
-  cargarFoto(file, url => crear(url), 500);
+  if (!file) { seguir(null); return; }
+  cargarFoto(file, url => seguir(url), 500);
+}
+
+/* ---------- modo colocación: se hace clic donde uno quiere ---------- */
+let colocando = null;
+
+function iniciarColocacion(b, cant, fotoUrl) {
+  cancelarColocacion();
+  colocando = { b: b, cant: cant, restantes: cant, foto: fotoUrl };
+  document.body.classList.add('colocando');
+  const bod = $('bodega');
+  const g = document.createElement('div');
+  g.id = 'fantasma';
+  g.style.width = (b.a * ESCALA) + 'px';
+  g.style.height = (b.f * ESCALA) + 'px';
+  g.style.left = '0px';
+  g.style.top = '0px';
+  bod.appendChild(g);
+  colocando.ghost = g;
+  aviso('Haz clic en el plano para ubicar' +
+        (cant > 1 ? ' (' + cant + ' unidades)' : '') + ' · Esc para cancelar');
+}
+
+function cancelarColocacion() {
+  if (!colocando) return;
+  const g = colocando.ghost;
+  if (g && g.parentNode) g.parentNode.removeChild(g);
+  colocando = null;
+  document.body.classList.remove('colocando');
+}
+
+function moverFantasma(ev) {
+  if (!colocando) return;
+  const bod = $('bodega'), r = bod.getBoundingClientRect();
+  const wpx = colocando.b.a * ESCALA, hpx = colocando.b.f * ESCALA;
+  let x = (ev.clientX - r.left) / zoomActual - wpx / 2;
+  let y = (ev.clientY - r.top) / zoomActual - hpx / 2;
+  x = Math.round(x / SNAP) * SNAP;
+  y = Math.round(y / SNAP) * SNAP;
+  x = Math.max(0, Math.min(x, bod.clientWidth - wpx));
+  y = Math.max(0, Math.min(y, bod.clientHeight - hpx));
+  colocando.ghost.style.left = x + 'px';
+  colocando.ghost.style.top = y + 'px';
+}
+
+function colocarEnPunto(px, py) {
+  const c = colocando; if (!c) return false;
+  const b = JSON.parse(JSON.stringify(c.b));
+  b.id = nuevoId('b');
+  if (b.cat !== 'libre' && areaOcupada() + b.a * b.f > estado.ancho * estado.fondo + 1e-9) {
+    error('No cabe: se pasa del área total');
+    return false;
+  }
+  b.cod = siguienteCodigo(b.cat);
+  if (c.foto) {
+    const fid = 'f' + (++fotoSeq);
+    fotos[fid] = c.foto;
+    b.foto = fid;
+    guardarFotosLocal();
+  }
+  const bod = $('bodega');
+  const wpx = b.a * ESCALA, hpx = b.f * ESCALA;
+  const x = Math.max(0, Math.min(px, bod.clientWidth - wpx));
+  const y = Math.max(0, Math.min(py, bod.clientHeight - hpx));
+  const libre = buscarLibre({ dataset: { categoria: b.cat } }, wpx, hpx, x, y);
+  if (!libre) { error('No hay espacio libre en ese punto'); return false; }
+  b.x = libre.x;
+  b.y = libre.y;
+  estado.bloques.push(b);
+  render(); guardarHistorial();
+  c.restantes--;
+  if (c.restantes <= 0) {
+    const foto = c.foto;
+    cancelarColocacion();
+    $('nombreBloque').value = '';
+    if (foto) $('fotoBloque').value = '';
+  } else {
+    aviso('Faltan ' + c.restantes + ' · clic para el siguiente');
+  }
+  return true;
+}
+
+// alta directa (sin modo colocación) — usada en las pruebas
+function agregarBloqueAuto() {
+  const b = leerFormulario();
+  if (!b) return false;
+  const cant = Math.max(1, Math.min(50, parseInt($('cantBloque').value, 10) || 1));
+  const destino = $('destino').value;
+  let n = 0;
+  for (let i = 0; i < cant; i++) {
+    const copia = JSON.parse(JSON.stringify(b));
+    copia.id = nuevoId('b');
+    if (destino && b.cat !== 'libre') {
+      if (!meterEnStand(destino, copia)) break;
+      n++;
+      continue;
+    }
+    copia.cod = siguienteCodigo(copia.cat);
+    if (!ubicar(copia)) break;
+    n++;
+  }
+  if (n) { render(); guardarHistorial(); $('nombreBloque').value = ''; }
+  return n > 0;
 }
 
 // busca hueco y agrega al modelo
@@ -875,7 +981,10 @@ function abrir3D() {
     };
     if (fotosPared[clave]) { e.backgroundImage = 'url("' + fotosPared[clave] + '")'; e.backgroundSize = ajuste; }
     const largo = (clave === 'arriba' || clave === 'abajo' ? mundoW : mundoF) / ESCALA;
-    mundo.appendChild(cara(w, hP, tr, e, abHTML('bodega', clave, largo, hP, clave === 'abajo' || clave === 'izq')));
+    const flip = (clave === 'abajo' || clave === 'izq');
+    const huecos = huecosDe('bodega', clave, hP, flip, largo);
+    mundo.appendChild(caraMuro(w, hP, tr, e, colP, huecos,
+      abHTML('bodega', clave, largo, hP, flip)));
   };
   pared(mundoW, 'translate3d(0px, ' + (-hP) + 'px, 0px)', 'arriba', 1);
   pared(mundoW, 'translate3d(0px, ' + (-hP) + 'px, ' + mundoF + 'px) rotateY(180deg)', 'abajo', 0.95);
@@ -888,9 +997,15 @@ function abrir3D() {
     const h = (esMarca ? 0.05 : b.h) * ESCALA;
     const medidas = b.a.toFixed(2) + ' × ' + b.f.toFixed(2) + (esMarca ? '' : ' × ' + b.h.toFixed(2)) + ' m';
     const base = { backgroundColor: b.color };
+    const ajusteFoto = ($('ajusteFoto') && $('ajusteFoto').value) || 'cover';
     const lado = br => {
       const e = Object.assign({}, base, { filter: 'brightness(' + br + ')' });
-      if (b.foto && fotos[b.foto]) e.backgroundImage = 'url("' + fotos[b.foto] + '")';
+      if (b.foto && fotos[b.foto]) {
+        e.backgroundImage = 'url("' + fotos[b.foto] + '")';
+        e.backgroundSize = ajusteFoto;
+        e.backgroundPosition = 'center';
+        e.backgroundRepeat = 'no-repeat';
+      }
       return e;
     };
     mundo.appendChild(cara(w + 14, d + 14, 'translate3d(' + (l - 7) + 'px, -0.5px, ' + (t - 7) + 'px) rotateX(90deg)', {
@@ -905,10 +1020,14 @@ function abrir3D() {
       mundo.appendChild(cara(w, d, 'translate3d(' + l + 'px, ' + (-h) + 'px, ' + t + 'px) rotateX(90deg)',
         Object.assign({}, base, { transformOrigin: '0 0' }), etiqueta));
     }
-    mundo.appendChild(cara(w, h, 'translate3d(' + l + 'px, ' + (-h) + 'px, ' + (t + d) + 'px)', lado(1), abHTML(b.id, 'abajo', b.a, h, false)));
-    mundo.appendChild(cara(w, h, 'translate3d(' + l + 'px, ' + (-h) + 'px, ' + t + 'px) rotateY(180deg)', lado(0.7), abHTML(b.id, 'arriba', b.a, h, true)));
-    mundo.appendChild(cara(d, h, 'translate3d(' + (l - d / 2) + 'px, ' + (-h) + 'px, ' + (t + d / 2) + 'px) rotateY(-90deg)', lado(0.85), abHTML(b.id, 'izq', b.f, h, false)));
-    mundo.appendChild(cara(d, h, 'translate3d(' + (l + w - d / 2) + 'px, ' + (-h) + 'px, ' + (t + d / 2) + 'px) rotateY(90deg)', lado(0.65), abHTML(b.id, 'der', b.f, h, true)));
+    mundo.appendChild(caraMuro(w, h, 'translate3d(' + l + 'px, ' + (-h) + 'px, ' + (t + d) + 'px)',
+      lado(1), b.color, huecosDe(b.id, 'abajo', h, false, b.a), abHTML(b.id, 'abajo', b.a, h, false)));
+    mundo.appendChild(caraMuro(w, h, 'translate3d(' + l + 'px, ' + (-h) + 'px, ' + t + 'px) rotateY(180deg)',
+      lado(0.7), b.color, huecosDe(b.id, 'arriba', h, true, b.a), abHTML(b.id, 'arriba', b.a, h, true)));
+    mundo.appendChild(caraMuro(d, h, 'translate3d(' + (l - d / 2) + 'px, ' + (-h) + 'px, ' + (t + d / 2) + 'px) rotateY(-90deg)',
+      lado(0.85), b.color, huecosDe(b.id, 'izq', h, false, b.f), abHTML(b.id, 'izq', b.f, h, false)));
+    mundo.appendChild(caraMuro(d, h, 'translate3d(' + (l + w - d / 2) + 'px, ' + (-h) + 'px, ' + (t + d / 2) + 'px) rotateY(90deg)',
+      lado(0.65), b.color, huecosDe(b.id, 'der', h, true, b.f), abHTML(b.id, 'der', b.f, h, true)));
   });
 
   const diag = Math.sqrt(mundoW * mundoW + mundoF * mundoF) || 1;
@@ -920,6 +1039,50 @@ function abrir3D() {
 
 function escapar(s) {
   return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function huecosDe(dueno, pared, altoPx, flip, largoM) {
+  return estado.aberturas.filter(a => a.dueno === dueno && a.pared === pared).map(a => ({
+    x: (flip ? largoM - a.pos - a.ancho : a.pos) * ESCALA,
+    y: altoPx - (a.desde + a.alto) * ESCALA,
+    wo: a.ancho * ESCALA,
+    ho: a.alto * ESCALA,
+    tipo: a.tipo
+  }));
+}
+
+// Trocea la pared en piezas alrededor de los huecos (agujero real)
+function piezasMuro(w, h, huecos, color) {
+  if (!huecos.length) return null;
+  const hs = huecos.slice().sort((a, b) => a.x - b.x);
+  const out = [];
+  const add = (x, y, ww, hh) => {
+    if (ww > 0.6 && hh > 0.6) {
+      out.push('<div style="position:absolute;left:' + x.toFixed(1) + 'px;top:' + y.toFixed(1) +
+        'px;width:' + ww.toFixed(1) + 'px;height:' + hh.toFixed(1) + 'px;background:' + color + '"></div>');
+    }
+  };
+  let x0 = 0;
+  hs.forEach(o => {
+    if (o.x > x0) add(x0, 0, o.x - x0, h);
+    if (o.y > 0) add(o.x, 0, o.wo, o.y);
+    if (o.y + o.ho < h) add(o.x, o.y + o.ho, o.wo, h - (o.y + o.ho));
+    x0 = Math.max(x0, o.x + o.wo);
+  });
+  if (x0 < w) add(x0, 0, w - x0, h);
+  return out.join('');
+}
+
+function caraMuro(w, h, tr, estilo, color, huecos, htmlAb) {
+  if (huecos && huecos.length && !estilo.backgroundImage) {
+    const html = piezasMuro(w, h, huecos, color);
+    if (html) {
+      const e = Object.assign({}, estilo);
+      delete e.backgroundColor;
+      return cara(w, h, tr, e, html);
+    }
+  }
+  return cara(w, h, tr, estilo, htmlAb);
 }
 
 function abHTML(dueno, pared, largoM, altoPx, flip) {
@@ -1044,6 +1207,19 @@ function iniciar() {
   $('esStand').addEventListener('change', e => { $('standCampos').style.display = e.target.checked ? 'flex' : 'none'; });
   $('esEstante').addEventListener('change', e => { $('estanteCampos').style.display = e.target.checked ? 'flex' : 'none'; });
   $('pasoMover').addEventListener('change', e => { SNAP = parseInt(e.target.value, 10) || 20; });
+  $('espesorMuro').addEventListener('change', e => { $('fondoBloque').value = e.target.value; });
+
+  // colocar con un clic en el plano
+  const bod = $('bodega');
+  bod.addEventListener('pointermove', moverFantasma);
+  bod.addEventListener('click', e => {
+    if (!colocando) return;
+    if (e.target.closest('.bloque-wrapper, .ab-ov, #fantasma')) return;
+    const r = bod.getBoundingClientRect();
+    const px = (e.clientX - r.left) / zoomActual - (colocando.b.a * ESCALA) / 2;
+    const py = (e.clientY - r.top) / zoomActual - (colocando.b.f * ESCALA) / 2;
+    colocarEnPunto(Math.round(px / SNAP) * SNAP, Math.round(py / SNAP) * SNAP);
+  });
   $('destino').addEventListener('change', refrescarNiveles);
   ['fotoParedArriba', 'fotoParedAbajo', 'fotoParedIzq', 'fotoParedDer'].forEach(id => {
     const el = $(id); if (el) el.addEventListener('change', () => cargarPared(el));
@@ -1063,7 +1239,7 @@ function iniciar() {
   window.addEventListener('beforeprint', construirLeyenda);
   window.addEventListener('resize', () => { });
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') cerrar3D();
+    if (e.key === 'Escape') { cerrar3D(); cancelarColocacion(); }
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); deshacer(); }
   });
 
@@ -1087,6 +1263,8 @@ function iniciar() {
 
   cambiarCategoria();
 
+  cargarFotosLocal();
+
   // restaurar sesión anterior
   if (cargarLocal()) {
     aplicarEstado();
@@ -1105,6 +1283,7 @@ function borrarTodo(silencioso) {
       (hayFotos ? '\n\nTambién se quitarán las fotos de pared del 3D.' : ''))) return false;
   estado = { ancho: estado.ancho, fondo: estado.fondo, bloques: [], aberturas: [] };
   Object.keys(fotos).forEach(k => delete fotos[k]);
+  guardarFotosLocal();
   limpiarFotosPared();
   const fb = $('fotoBloque'); if (fb) fb.value = '';
   render(); listarAb(); guardarHistorial();
@@ -1121,7 +1300,7 @@ function quitarFotoEquipo() {
 const TAM_DEFECTO = {
   objeto: [2.00, 1.00, 2.00],
   edificacion: [3.00, 2.50, 2.60],
-  muro: [2.00, 0.10, 2.40],
+  muro: [2.00, 0.15, 2.40],
   libre: [1.00, 0.60, 0.05]
 };
 
@@ -1129,6 +1308,8 @@ function cambiarCategoria(ponerDefecto) {
   const c = $('categoriaBloque').value;
   $('colorBloque').value = COLORES[c];
   $('optObjeto').style.display = c === 'objeto' ? 'block' : 'none';
+  const om = $('optMuro'); if (om) om.style.display = c === 'muro' ? 'block' : 'none';
+  if (c === 'muro' && $('espesorMuro')) $('espesorMuro').value = '0.15';
   if (ponerDefecto && TAM_DEFECTO[c]) {
     const [a, f, al] = TAM_DEFECTO[c];
     $('anchoBloque').value = a;
@@ -1159,7 +1340,7 @@ function correrTest() {
   t('agregar bloque EQ1', () => {
     $('nombreBloque').value = 'Horno test';
     $('anchoBloque').value = 2; $('fondoBloque').value = 1; $('altoBloque').value = 2;
-    agregarBloque();
+    agregarBloqueAuto();
     return estado.bloques.length === 1 && estado.bloques[0].cod === 'EQ1';
   });
 
@@ -1167,7 +1348,7 @@ function correrTest() {
 
   t('sin solape: segundo bloque se reubica', () => {
     $('nombreBloque').value = 'Equipo 2';
-    agregarBloque();
+    agregarBloqueAuto();
     if (estado.bloques.length !== 2) return false;
     const [a, b] = estado.bloques;
     const solapa = a.x < b.x + b.a * ESCALA - 0.01 && a.x + a.a * ESCALA > b.x + 0.01 &&
@@ -1203,13 +1384,13 @@ function correrTest() {
     $('categoriaBloque').value = 'objeto';
     $('nombreBloque').value = 'Stand test';
     $('anchoBloque').value = 2; $('fondoBloque').value = 1; $('altoBloque').value = 1;
-    agregarBloque();
+    agregarBloqueAuto();
     const stand = estado.bloques.find(b => b.stand);
     if (!stand) return false;
     refrescarDestinos();
     $('destino').value = stand.id; refrescarNiveles();
     $('nombreBloque').value = 'Caja'; $('anchoBloque').value = 0.5; $('fondoBloque').value = 0.5; $('altoBloque').value = 0.5;
-    agregarBloque();
+    agregarBloqueAuto();
     $('esStand').checked = false;
     return stand.stand.contenido.length === 1;
   });
@@ -1238,7 +1419,7 @@ function correrTest() {
 
   t('franja de marcaci\u00f3n dibujada', () => {
     $('nombreBloque').value = 'Con franja'; $('anchoBloque').value = 1; $('fondoBloque').value = 1;
-    $('conMarca').checked = true; agregarBloque();
+    $('conMarca').checked = true; agregarBloqueAuto();
     return document.querySelectorAll('.franja').length >= 4;
   });
 
@@ -1260,22 +1441,22 @@ function correrTest() {
     fotosPared.izq = 'data:image/png;base64,y';
     fotos['f9'] = 'data:image/png;base64,z';
     $('nombreBloque').value = 'Temporal';
-    agregarBloque();
+    agregarBloqueAuto();
     borrarTodo(true);
     return estado.bloques.length === 0 && estado.aberturas.length === 0 &&
            Object.keys(fotosPared).length === 0 && Object.keys(fotos).length === 0;
   });
 
-  t('muro divisorio con espesor 0.10', () => {
+  t('muro divisorio con espesor 0.15', () => {
     $('categoriaBloque').value = 'muro';
     cambiarCategoria(true);
-    const okDef = (num($('fondoBloque').value) === 0.10);
+    const okDef = (num($('fondoBloque').value) === 0.15);
     $('nombreBloque').value = 'Divisorio';
-    agregarBloque();
+    agregarBloqueAuto();
     const m = estado.bloques.filter(b => b.cat === 'muro').pop();
     $('categoriaBloque').value = 'objeto';
     cambiarCategoria(true);
-    return okDef && !!m && m.cod.indexOf('MD') === 0 && Math.abs(m.f - 0.10) < 1e-9;
+    return okDef && !!m && m.cod.indexOf('MD') === 0 && Math.abs(m.f - 0.15) < 1e-9;
   });
 
   t('3D sin techos no rompe con muros', () => {
@@ -1284,6 +1465,40 @@ function correrTest() {
     const n = document.querySelectorAll('.cara3d').length;
     cerrar3D();
     return n > 8;
+  });
+
+  t('colocar con un clic en el punto elegido', () => {
+    $('categoriaBloque').value = 'muro';
+    cambiarCategoria(true);
+    $('nombreBloque').value = 'Divisorio clic';
+    iniciarColocacion(leerFormulario(), 1, null);
+    const ok = colocarEnPunto(100, 200);
+    const m = estado.bloques.filter(b => b.nombre === 'Divisorio clic').pop();
+    cancelarColocacion();
+    $('categoriaBloque').value = 'objeto';
+    cambiarCategoria(true);
+    return ok && !!m && Math.abs(m.x - 100) < 1e-6 && Math.abs(m.y - 200) < 1e-6;
+  });
+
+  t('huecos de puerta generan piezas de muro', () => {
+    const piezas = piezasMuro(200, 100, [{ x: 50, y: 20, wo: 40, ho: 50 }], '#3498db');
+    const n = (piezas.match(/<div/g) || []).length;
+    return n === 4;
+  });
+
+  t('la foto del equipo se usa en 3D', () => {
+    fotos['ftest'] = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+    $('nombreBloque').value = 'Equipo con foto';
+    $('anchoBloque').value = 2; $('fondoBloque').value = 1.5; $('altoBloque').value = 2;
+    agregarBloqueAuto();
+    const b = estado.bloques.filter(x => x.nombre === 'Equipo con foto').pop();
+    if (!b) return false;
+    b.foto = 'ftest';
+    abrir3D();
+    const conFoto = Array.from(document.querySelectorAll('.cara3d'))
+      .some(c => (c.style.backgroundImage || '').indexOf('data:image') > -1);
+    cerrar3D();
+    return conFoto;
   });
 
   cont.textContent = res.join('\n');

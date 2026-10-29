@@ -67,9 +67,18 @@
                 <div><label for="sepRepisa">Espacio (m)</label><input type="number" id="sepRepisa" value="0.36" step="0.01" min="0.05"></div>
             </div>
         </div>
+        <div id="optMuro" class="form-group" style="display:none">
+            <label for="espesorMuro">Espesor del muro</label>
+            <select id="espesorMuro">
+                <option value="0.10">0.10 m — tabique delgado</option>
+                <option value="0.15" selected>0.15 m — muro de bloque</option>
+                <option value="0.20">0.20 m — muro grueso</option>
+                <option value="0.25">0.25 m — muro estructural</option>
+            </select>
+        </div>
         <div class="form-group fila-campos">
-            <div><label for="anchoBloque">Ancho (m)</label><input type="number" id="anchoBloque" value="2.95" step="0.1" min="0.1"></div>
-            <div><label for="fondoBloque">Fondo (m)</label><input type="number" id="fondoBloque" value="5.5" step="0.1" min="0.1"></div>
+            <div><label for="anchoBloque">Ancho / largo (m)</label><input type="number" id="anchoBloque" value="2.95" step="0.1" min="0.1"></div>
+            <div><label for="fondoBloque">Fondo / espesor (m)</label><input type="number" id="fondoBloque" value="5.5" step="0.1" min="0.1"></div>
         </div>
         <div class="form-group">
             <label for="altoBloque">Alto (m) — para la vista 3D</label>
@@ -107,8 +116,13 @@
                 <input type="file" id="fotoBloque" accept="image/*">
                 <button type="button" id="btnQuitarFotoBloque" class="btn-quitar" title="Quitar la foto elegida">✕</button>
             </div>
+            <select id="ajusteFoto" style="margin-top:6px">
+                <option value="cover">En el 3D: cubrir (recorta)</option>
+                <option value="100% 100%">En el 3D: estirar</option>
+                <option value="contain">En el 3D: contener (bordes)</option>
+            </select>
         </div>
-        <button id="btnAgregar" class="btn-primario">+ Agregar Bloque</button>
+        <button id="btnAgregar" class="btn-primario">+ Ubicar en el plano</button>
         <button id="btnDeshacer" class="btn-undo">↩️ Deshacer</button>
 
         <h2 style="margin-top:20px;">3. Paredes (vista 3D)</h2>

@@ -148,6 +148,22 @@ hr { border: 0; border-top: 1px solid #eee; margin: 18px 0; }
 
 .bloque-wrapper[data-categoria="libre"] .bloque { border: 2px dashed #1e8449; }
 
+/* zona de agarre de los muros delgados */
+.bloque-wrapper[data-categoria="muro"]::after {
+    content: ''; position: absolute; inset: -7px;
+}
+
+/* fantasma de colocación */
+#fantasma {
+    position: absolute; pointer-events: none; z-index: 9000;
+    background: rgba(27, 42, 58, .30);
+    border: 2px dashed #1B2A3A;
+    box-shadow: 0 0 0 2px rgba(255, 195, 0, .9);
+}
+body.colocando #bodega { cursor: crosshair; }
+body.colocando .bloque-wrapper,
+body.colocando .ab-ov { pointer-events: none; }
+
 /* muros divisorios: se dibujan como una linea gruesa */
 .bloque-wrapper[data-categoria="muro"] .bloque { border: 1.5px solid #1B4F72; background-color: #5D6D7E !important; }
 .bloque-wrapper[data-categoria="muro"] .bloque-content { display: none; }
