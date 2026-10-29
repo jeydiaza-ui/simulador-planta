@@ -188,7 +188,12 @@
         <button id="btnAgregar" class="btn-primario">+ Ubicar en el plano</button>
         <button id="btnDeshacer" class="btn-undo">↩️ Deshacer</button>
 
-        <h2 style="margin-top:20px;">3. Paredes (vista 3D)</h2>
+        <h2 style="margin-top:20px;">3. Biblioteca de equipos</h2>
+        <p class="ayuda">Arrastra un objeto al plano, o haz clic para cargarlo con sus medidas y ajustarlas.</p>
+        <div id="bib" class="bib"></div>
+        <button id="btnBibAdd" class="btn-sec">＋ Agregar el seleccionado a la biblioteca</button>
+
+        <h2 style="margin-top:20px;">4. Paredes (vista 3D)</h2>
         <div class="form-group fila-campos">
             <div><label for="altoPared">Alto paredes (m)</label><input type="number" id="altoPared" value="4" step="0.1" min="1"></div>
             <div><label for="colorPared">Color base</label><input type="color" id="colorPared" value="#e6e2da"></div>
@@ -233,7 +238,7 @@
             </select>
         </div>
 
-        <h2 style="margin-top:20px;">4. Puertas y ventanas</h2>
+        <h2 style="margin-top:20px;">5. Puertas y ventanas</h2>
         <div class="form-group">
             <label for="abDueno">En</label>
             <select id="abDueno"><option value="bodega">Bodega (paredes exteriores)</option></select>
@@ -296,6 +301,7 @@
     <div id="avisos" aria-live="polite"></div>
     <div id="selftest" hidden></div>
 
+    <script src="assets/biblioteca.js"></script>
     <script src="assets/app.js"></script>
 </body>
 </html>

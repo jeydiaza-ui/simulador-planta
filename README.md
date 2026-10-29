@@ -14,6 +14,7 @@ distribución en planta de un taller o bodega, ubicar equipos, puertas y ventana
   - **Marcación de seguridad** amarilla y negra alrededor del equipo (15 o 20 cm).
   - **Stands con niveles**: valida alto, área y carga por nivel, y muestra el % ocupado.
   - **Estantes metálicos** dibujados en 3D con postes y repisas.
+- **Biblioteca de equipos 3D**: arrastra un objeto al plano y ajusta sus medidas.
 - **Anti-solape**: al mover o crear, el bloque busca el hueco libre más cercano.
 - **Puertas y ventanas**: se agregan a una pared (de la bodega o de una edificación),
   se arrastran contra la pared y se ajustan con una barra.

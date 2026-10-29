@@ -39,6 +39,9 @@ let histIdx = -1;
 let cam = { rx: -55, ry: -25, z: 1 };
 let mundoW = 0, mundoF = 0;
 let sprites = [];
+let fotoPendiente = null;
+const LS_BIB = 'ctc_biblioteca_v1';
+let bibExtra = [], bibOcultos = [];
 
 /* ---------------- utilidades ---------------- */
 const $ = id => document.getElementById(id);
@@ -301,6 +304,12 @@ function agregarBloque() {
     iniciarColocacion(b, cant, fotoUrl, silueta);
   };
 
+  if (!file && fotoPendiente) {
+    const f = fotoPendiente;
+    fotoPendiente = null;
+    seguir(f, true);
+    return;
+  }
   if (!file) { seguir(null, false); return; }
   cargarFoto(file, url => {
     if (url && $('fotoSilueta') && $('fotoSilueta').checked) {
@@ -1310,6 +1319,113 @@ function ubicarEn(b, px, py) {
 }
 
 /* ============================================================
+   BIBLIOTECA DE EQUIPOS
+   ============================================================ */
+function cargarBibLocal() {
+  try {
+    const d = JSON.parse(localStorage.getItem(LS_BIB) || '{}');
+    bibExtra = Array.isArray(d.extra) ? d.extra : [];
+    bibOcultos = Array.isArray(d.ocultos) ? d.ocultos : [];
+  } catch (_) { bibExtra = []; bibOcultos = []; }
+}
+
+function guardarBibLocal() {
+  try { localStorage.setItem(LS_BIB, JSON.stringify({ extra: bibExtra, ocultos: bibOcultos })); }
+  catch (_) { }
+}
+
+function catalogo() {
+  const base = (typeof BIBLIOTECA !== 'undefined' ? BIBLIOTECA : []);
+  return base.filter(x => bibOcultos.indexOf(x.id) < 0).concat(bibExtra);
+}
+
+function pintarBiblioteca() {
+  const c = $('bib');
+  if (!c) return;
+  c.innerHTML = '';
+  catalogo().forEach(b => {
+    const d = document.createElement('div');
+    d.className = 'bib-item';
+    d.draggable = true;
+    d.title = b.nombre + '  ·  ' + b.a.toFixed(2) + ' × ' + b.f.toFixed(2) + ' × ' + b.h.toFixed(2) + ' m';
+    const im = document.createElement('img');
+    im.src = b.foto;
+    im.alt = b.nombre;
+    const sp = document.createElement('span');
+    sp.textContent = b.nombre;
+    const x = document.createElement('button');
+    x.type = 'button';
+    x.className = 'bib-del';
+    x.textContent = '✕';
+    x.title = 'Quitar de la biblioteca';
+    x.addEventListener('click', e => { e.stopPropagation(); quitarDeBib(b.id); });
+    d.append(im, sp, x);
+    d.addEventListener('click', () => usarBib(b.id));
+    d.addEventListener('dragstart', e => {
+      e.dataTransfer.setData('text/plain', b.id);
+      e.dataTransfer.effectAllowed = 'copy';
+    });
+    c.appendChild(d);
+  });
+}
+
+function usarBib(id) {
+  const b = catalogo().find(x => x.id === id);
+  if (!b) return;
+  elegirTipo('objeto');
+  $('nombreBloque').value = b.nombre;
+  $('anchoBloque').value = b.a;
+  $('fondoBloque').value = b.f;
+  $('altoBloque').value = b.h;
+  fotoPendiente = b.foto;
+  aviso(b.nombre + ' cargado · ajusta las medidas y pulsa "+ Ubicar en el plano"');
+  $('nombreBloque').scrollIntoView({ block: 'center', behavior: 'smooth' });
+}
+
+function crearDesdeBib(id, clientX, clientY) {
+  const b = catalogo().find(x => x.id === id);
+  if (!b) return false;
+  const bod = $('bodega'), r = bod.getBoundingClientRect();
+  const px = (clientX - r.left) / zoomActual - (b.a * ESCALA) / 2;
+  const py = (clientY - r.top) / zoomActual - (b.f * ESCALA) / 2;
+  const nb = {
+    id: nuevoId('b'), cod: siguienteCodigo('objeto'), cat: 'objeto', nombre: b.nombre,
+    a: b.a, f: b.f, h: b.h, color: '#f1c40f', peso: 0,
+    marca: num($('anchoMarca').value, 20), stand: null, estante: null,
+    foto: null, silueta: true, rot: false, x: 0, y: 0
+  };
+  if (!ubicarEn(nb, Math.round(px / SNAP) * SNAP, Math.round(py / SNAP) * SNAP)) return false;
+  const fid = 'f' + (++fotoSeq);
+  fotos[fid] = b.foto;
+  nb.foto = fid;
+  guardarFotosLocal();
+  render(); guardarHistorial(); seleccionar(nb.id);
+  ok(b.nombre + ' agregado');
+  return true;
+}
+
+function quitarDeBib(id) {
+  if (typeof BIBLIOTECA !== 'undefined' && BIBLIOTECA.some(b => b.id === id)) {
+    if (bibOcultos.indexOf(id) < 0) bibOcultos.push(id);
+  } else {
+    bibExtra = bibExtra.filter(b => b.id !== id);
+  }
+  guardarBibLocal();
+  pintarBiblioteca();
+}
+
+function agregarABiblioteca() {
+  const b = estado.bloques.find(x => x.id === selId);
+  if (!b) { aviso('Primero selecciona un elemento del plano'); return; }
+  const foto = (b.foto && fotos[b.foto]) ? fotos[b.foto] : null;
+  if (!foto) { aviso('Ese elemento no tiene foto: selecciona uno con imagen'); return; }
+  bibExtra.push({ id: 'u' + Date.now(), nombre: b.nombre, a: b.a, f: b.f, h: b.h, foto: foto });
+  guardarBibLocal();
+  pintarBiblioteca();
+  ok(b.nombre + ' agregado a la biblioteca');
+}
+
+/* ============================================================
    INICIALIZACIÓN
    ============================================================ */
 function iniciar() {
@@ -1344,6 +1460,17 @@ function iniciar() {
   document.querySelectorAll('.tipo').forEach(b => {
     b.addEventListener('click', () => elegirTipo(b.dataset.cat));
   });
+
+  // biblioteca: arrastrar al plano
+  const bodBib = $('bodega');
+  bodBib.addEventListener('dragover', e => e.preventDefault());
+  bodBib.addEventListener('drop', e => {
+    const id = e.dataTransfer.getData('text/plain');
+    if (!id) return;
+    e.preventDefault();
+    crearDesdeBib(id, e.clientX, e.clientY);
+  });
+  $('btnBibAdd').addEventListener('click', agregarABiblioteca);
   $('esStand').addEventListener('change', e => { $('standCampos').style.display = e.target.checked ? 'flex' : 'none'; });
   $('esEstante').addEventListener('change', e => { $('estanteCampos').style.display = e.target.checked ? 'flex' : 'none'; });
   $('pasoMover').addEventListener('change', e => { SNAP = parseFloat(e.target.value) || 2; });
@@ -1434,6 +1561,8 @@ function iniciar() {
   elegirTipo('objeto');
   SNAP = parseFloat($('pasoMover').value) || 2;
 
+  cargarBibLocal();
+  pintarBiblioteca();
   cargarFotosLocal();
 
   // restaurar sesión anterior
@@ -1585,6 +1714,7 @@ function mostrarCampos(cat) {
 }
 
 function elegirTipo(cat) {
+  fotoPendiente = null;
   $('categoriaBloque').value = cat;
   document.querySelectorAll('.tipo').forEach(b =>
     b.classList.toggle('activo', b.dataset.cat === cat));
@@ -1891,6 +2021,27 @@ function correrTest() {
     $('selMarca').checked = false;
     aplicarSeleccion();
     return !estado.bloques.find(b => b.nombre === 'BOBINADO').marca;
+  });
+
+  t('la biblioteca trae equipos', () => catalogo().length >= 5);
+
+  t('arrastrar de la biblioteca crea el equipo con foto', () => {
+    borrarTodo(true);
+    const it = catalogo()[0];
+    const okc = crearDesdeBib(it.id, 300, 300);
+    const b = estado.bloques[estado.bloques.length - 1];
+    return okc && !!b && b.nombre === it.nombre && !!b.foto && !!fotos[b.foto];
+  });
+
+  t('quitar y volver a poner un objeto de la biblioteca', () => {
+    const it = catalogo()[0];
+    const antes = catalogo().length;
+    quitarDeBib(it.id);
+    const medio = catalogo().length;
+    bibOcultos = [];
+    guardarBibLocal();
+    pintarBiblioteca();
+    return medio === antes - 1 && catalogo().length === antes;
   });
 
   cont.textContent = res.join('\n');

@@ -59,6 +59,22 @@ input[type="file"] { width: 100%; font-size: 12px; }
 .tipo.activo small { color: #FFC300; }
 
 .fila-campos { display: flex; gap: 8px; }
+.bib { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 8px; }
+.bib-item {
+    position: relative; background: #F7F9FB; border: 1px solid #DDE3E9; border-radius: 6px;
+    padding: 4px 3px 3px; text-align: center; cursor: grab; user-select: none;
+}
+.bib-item:hover { border-color: #1B2A3A; background: #EFF4F8; }
+.bib-item:active { cursor: grabbing; }
+.bib-item img { width: 100%; height: 52px; object-fit: contain; display: block; pointer-events: none; }
+.bib-item span { font-size: 8.6px; color: #39434E; display: block; line-height: 1.15; margin-top: 2px; }
+.bib-del {
+    position: absolute; top: -6px; right: -6px; width: 18px; height: 18px; margin: 0; padding: 0;
+    border-radius: 50%; background: #C0392B; color: #fff; font-size: 10px; line-height: 1;
+    display: none; align-items: center; justify-content: center;
+}
+.bib-item:hover .bib-del { display: flex; }
+
 .fila-archivo { display: flex; gap: 6px; align-items: center; }
 .fila-archivo input[type="file"] { flex: 1 1 auto; min-width: 0; width: auto; font-size: 11px; }
 .btn-quitar {
