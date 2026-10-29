@@ -1579,6 +1579,8 @@ function mostrarCampos(cat) {
   if ($('lblAncho')) $('lblAncho').textContent = e.a;
   if ($('lblFondo')) $('lblFondo').textContent = e.f;
   if ($('lblFoto')) $('lblFoto').textContent = e.foto || 'Foto (opcional)';
+  // en los muros el espesor se elige en su propio selector
+  if ($('fondoBloque')) $('fondoBloque').parentElement.style.display = (cat === 'muro') ? 'none' : '';
   if ($('tipoAyuda')) $('tipoAyuda').textContent = AYUDA[cat] || '';
 }
 
