@@ -24,6 +24,10 @@ distribución en planta de un taller o bodega, ubicar equipos, puertas y ventana
 - **Deshacer** (hasta 40 pasos) y atajos de teclado.
 - Funciona **sin conexión** y en **móvil** (arrastre táctil y panel deslizable).
 
+## 📘 Manual de uso
+
+Guía paso a paso en PDF: [docs/manual-usuario.pdf](docs/manual-usuario.pdf) (9 páginas, con capturas).
+
 ## 🚀 Cómo usarlo
 
 1. Abre `index.html` en el navegador (doble clic) o visita la versión publicada.
