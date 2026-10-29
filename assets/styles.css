@@ -129,7 +129,11 @@ hr { border: 0; border-top: 1px solid #eee; margin: 18px 0; }
 }
 .bloque .btn-del { right: 2px; background: rgba(255,0,0,.85); color: #fff; }
 .bloque .btn-rot { left: 2px; background: rgba(241,196,15,.95); color: #000; }
-.bloque .area-txt { font-size: 9px; font-weight: 400; margin-top: 2px; }
+/* los botones solo aparecen al pasar el ratón o al seleccionar: plano más limpio */
+.bloque .btn-del, .bloque .btn-rot { opacity: 0; transition: opacity .12s; }
+.bloque-wrapper:hover .btn-del, .bloque-wrapper:hover .btn-rot,
+.bloque-wrapper.sel .btn-del, .bloque-wrapper.sel .btn-rot { opacity: 1; }
+.bloque .area-txt { font-size: .85em; font-weight: 400; margin-top: 1px; }
 .bloque .stand-info { font-size: 8px; font-weight: 400; }
 
 .bloque-foto {
@@ -147,6 +151,13 @@ hr { border: 0; border-top: 1px solid #eee; margin: 18px 0; }
 .franja.f-der    { top: 0; bottom: 0; width: var(--fm); right: calc(-1 * var(--fm)); }
 
 .bloque-wrapper[data-categoria="libre"] .bloque { border: 2px dashed #1e8449; }
+
+/* plano limpio sin rótulos */
+body.sin-nombres .bloque-content { display: none; }
+
+/* elemento seleccionado */
+.bloque-wrapper.sel .bloque { outline: 3px solid #FFC300; outline-offset: 1px; }
+.bloque-wrapper.sel .bloque-wrapper { z-index: 9998 !important; }
 
 /* zona de agarre de los muros delgados */
 .bloque-wrapper[data-categoria="muro"]::after {

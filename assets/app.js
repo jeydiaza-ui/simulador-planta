@@ -378,7 +378,7 @@ function colocarEnPunto(px, py) {
   b.y = libre.y;
   estado.bloques.push(b);
   render(); guardarHistorial();
-  marcarPosicion(b);
+  marcarPosicion(b); seleccionar(b.id);
   c.restantes--;
   if (c.restantes <= 0) {
     const foto = c.foto;
@@ -430,6 +430,7 @@ function ubicar(b) {
 }
 
 function borrarBloque(id) {
+  if (selId === id) { selId = null; const sb = $('selBox'); if (sb) sb.style.display = 'none'; }
   estado.bloques = estado.bloques.filter(b => b.id !== id);
   estado.aberturas = estado.aberturas.filter(a => a.dueno !== id);
   render(); guardarHistorial();
@@ -503,6 +504,7 @@ function crearElBloque(b) {
 
   const cont = document.createElement('div');
   cont.className = 'bloque-content';
+  const wpx = b.a * ESCALA, hpx = b.f * ESCALA;
   const s1 = document.createElement('span');
   s1.textContent = (b.cod ? b.cod + ' ' : '') + b.nombre;
   const br = document.createElement('br');
@@ -510,6 +512,21 @@ function crearElBloque(b) {
   s2.className = 'area-txt';
   s2.textContent = (b.a * b.f).toFixed(2) + ' m²';
   cont.append(s1, br, s2);
+  // el texto se ajusta al tamaño real del bloque
+  const largoNom = Math.max(4, ((b.cod ? b.cod.length + 1 : 0) + b.nombre.length));
+  const conArea = (wpx >= 58 && hpx >= 34);
+  let fs = Math.min(10, (wpx - 8) / (largoNom * 0.62), hpx * (conArea ? 0.26 : 0.42));
+  fs = Math.max(5.5, fs);
+  cont.style.fontSize = fs.toFixed(1) + 'px';
+  // en bloques pequeños se recorta el nombre y se quita el área
+  s1.style.display = 'block';
+  s1.style.whiteSpace = 'nowrap';
+  s1.style.overflow = 'hidden';
+  s1.style.textOverflow = 'ellipsis';
+  if (!conArea) s2.style.display = 'none';
+  if (hpx < 16 || wpx < 22) { s1.textContent = b.cod || ''; }
+  w.title = (b.cod ? b.cod + ' · ' : '') + b.nombre + '  (' + b.a.toFixed(2) + ' × ' +
+            b.f.toFixed(2) + ' m · ' + (b.a * b.f).toFixed(2) + ' m²)';
 
   if (b.stand) {
     const si = document.createElement('div');
@@ -577,7 +594,7 @@ function iniciarArrastreBloque(e, id) {
     w.removeEventListener('pointerup', fin);
     w.removeEventListener('pointercancel', fin);
     w.classList.remove('arrastrando');
-    if (!movido) { w.style.left = x0 + 'px'; w.style.top = y0 + 'px'; return; }
+    if (!movido) { w.style.left = x0 + 'px'; w.style.top = y0 + 'px'; seleccionar(id); return; }
     const libre = buscarLibre(w, wpx, hpx, nx, ny);
     if (!libre) {
       w.style.left = x0 + 'px'; w.style.top = y0 + 'px';
@@ -1299,6 +1316,36 @@ function iniciar() {
     btn.addEventListener('click', () => quitarFotoPared(btn.dataset.quitar));
   });
   $('btnQuitarFotoBloque').addEventListener('click', quitarFotoEquipo);
+  $('verNombres').addEventListener('change', e =>
+    document.body.classList.toggle('sin-nombres', !e.target.checked));
+
+  // edición del elemento seleccionado
+  $('btnSelAplicar').addEventListener('click', aplicarSeleccion);
+  $('btnSelDup').addEventListener('click', duplicarSeleccion);
+  $('btnSelDel').addEventListener('click', () => { const id = selId; borrarBloque(id); seleccionar(null); });
+  $('btnSelCerrar').addEventListener('click', () => seleccionar(null));
+  $('btnSelQuitarFoto').addEventListener('click', quitarFotoSeleccion);
+  $('selFoto').addEventListener('change', e => {
+    const f = e.target.files && e.target.files[0];
+    if (!f) return;
+    const id = selId;
+    cargarFoto(f, url => {
+      const aplicar = (u, sil) => {
+        const b = estado.bloques.find(x => x.id === id);
+        if (!b) return;
+        const fid = 'f' + (++fotoSeq);
+        fotos[fid] = u;
+        b.foto = fid;
+        b.silueta = !!sil;
+        guardarFotosLocal();
+        render(); guardarHistorial(); seleccionar(b.id);
+        ok('Foto actualizada');
+      };
+      if ($('fotoSilueta').checked) recortarFondo(url, out => aplicar(out || url, !!out));
+      else aplicar(url, false);
+    }, 900);
+    e.target.value = '';
+  });
 
   // panel móvil
   const panel = $('panel');
@@ -1347,6 +1394,67 @@ function iniciar() {
   }
 
   if (new URLSearchParams(location.search).has('selftest')) correrTest();
+}
+
+let selId = null;
+
+function seleccionar(id) {
+  const b = estado.bloques.find(x => x.id === id);
+  const box = $('selBox');
+  if (!box) return;
+  if (!b) { selId = null; box.style.display = 'none'; return; }
+  selId = id;
+  document.querySelectorAll('.bloque-wrapper').forEach(w =>
+    w.classList.toggle('sel', w.dataset.id === id));
+  box.style.display = 'block';
+  $('selInfo').textContent = b.cod + '  ·  ' + (b.a * b.f).toFixed(2) + ' m²' +
+    (b.foto ? '  ·  con foto' : '');
+  $('selNombre').value = b.nombre;
+  $('selAncho').value = b.a;
+  $('selFondo').value = b.f;
+  $('selAlto').value = b.h;
+  $('selColor').value = b.color;
+  $('selFoto').value = '';
+}
+
+function aplicarSeleccion() {
+  const b = estado.bloques.find(x => x.id === selId);
+  if (!b) { aviso('Selecciona un elemento en el plano'); return; }
+  const na = num($('selAncho').value, b.a), nf = num($('selFondo').value, b.f);
+  const nh = Math.max(0.1, num($('selAlto').value, b.h));
+  if (na <= 0 || nf <= 0) { error('Medidas inválidas'); return; }
+  const wpx = na * ESCALA, hpx = nf * ESCALA;
+  const otro = { dataset: { categoria: b.cat } };
+  const choca = colisiona(otro, b.x, b.y, wpx, hpx);
+  if (choca) {
+    const libre = buscarLibre(otro, wpx, hpx, b.x, b.y);
+    if (!libre) { error('Con ese tamaño no cabe: choca con otro elemento'); return; }
+    b.x = libre.x; b.y = libre.y;
+  }
+  b.nombre = ($('selNombre').value || '').trim() || b.nombre;
+  b.a = na; b.f = nf; b.h = nh;
+  b.color = $('selColor').value;
+  render(); guardarHistorial(); seleccionar(b.id);
+  ok('Cambios aplicados');
+}
+
+function duplicarSeleccion() {
+  const b = estado.bloques.find(x => x.id === selId);
+  if (!b) { aviso('Selecciona un elemento'); return; }
+  const c = JSON.parse(JSON.stringify(b));
+  c.id = nuevoId('b');
+  c.cod = siguienteCodigo(c.cat);
+  if (!ubicar(c)) return;
+  render(); guardarHistorial(); seleccionar(c.id);
+  ok('Duplicado');
+}
+
+function quitarFotoSeleccion() {
+  const b = estado.bloques.find(x => x.id === selId);
+  if (!b) return;
+  b.foto = null; b.silueta = false;
+  render(); guardarHistorial(); seleccionar(b.id);
+  aviso('Foto quitada');
 }
 
 function marcarPosicion(b) {
@@ -1618,6 +1726,28 @@ function correrTest() {
     const altoOk = sp && Math.abs(parseFloat(sp.style.height) - 1.6 * ESCALA) < 0.5;
     cerrar3D();
     return !!sp && altoOk;
+  });
+
+  t('editar medidas de un elemento existente', () => {
+    borrarTodo(true);
+    $('categoriaBloque').value = 'objeto'; cambiarCategoria(true);
+    $('nombreBloque').value = 'Editable';
+    $('anchoBloque').value = 2; $('fondoBloque').value = 1; $('altoBloque').value = 2;
+    agregarBloqueAuto();
+    const b = estado.bloques[estado.bloques.length - 1];
+    seleccionar(b.id);
+    $('selAncho').value = 3; $('selFondo').value = 2; $('selAlto').value = 2.5;
+    $('selNombre').value = 'Editado';
+    aplicarSeleccion();
+    const m = estado.bloques.find(x => x.id === b.id);
+    return m && Math.abs(m.a - 3) < 1e-9 && Math.abs(m.f - 2) < 1e-9 &&
+           Math.abs(m.h - 2.5) < 1e-9 && m.nombre === 'Editado';
+  });
+
+  t('duplicar el elemento seleccionado', () => {
+    const antes = estado.bloques.length;
+    duplicarSeleccion();
+    return estado.bloques.length === antes + 1;
   });
 
   cont.textContent = res.join('\n');

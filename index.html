@@ -28,10 +28,44 @@
         </div>
         <button id="btnCrearBodega" class="btn-primario">Generar Lienzo</button>
 
+        <div class="form-group" style="margin-top:8px">
+            <label class="chk"><input type="checkbox" id="verNombres" checked>
+                Mostrar nombres en el plano <span style="font-weight:400;color:#888">(apágalo para un plano limpio)</span></label>
+        </div>
         <div id="totales" aria-live="polite">
             <p><span>Área Total:</span> <span id="txtTotal">0 m²</span></p>
             <p><span>Área Ocupada:</span> <span id="txtOcupada">0 m²</span></p>
             <p class="alerta"><span>Área Libre:</span> <span id="txtLibre">0 m²</span></p>
+        </div>
+
+        <div id="selBox" style="display:none">
+            <h2>Elemento seleccionado</h2>
+            <p id="selInfo" class="ayuda"></p>
+            <div class="form-group">
+                <label for="selNombre">Nombre</label>
+                <input type="text" id="selNombre" maxlength="60">
+            </div>
+            <div class="form-group fila-campos">
+                <div><label for="selAncho">Ancho / largo (m)</label><input type="number" id="selAncho" step="0.05" min="0.05"></div>
+                <div><label for="selFondo">Fondo / espesor (m)</label><input type="number" id="selFondo" step="0.05" min="0.05"></div>
+            </div>
+            <div class="form-group fila-campos">
+                <div><label for="selAlto">Alto (m)</label><input type="number" id="selAlto" step="0.1" min="0.1"></div>
+                <div><label for="selColor">Color</label><input type="color" id="selColor"></div>
+            </div>
+            <div class="form-group">
+                <label for="selFoto">Foto / imagen 3D</label>
+                <div class="fila-archivo">
+                    <input type="file" id="selFoto" accept="image/*">
+                    <button type="button" id="btnSelQuitarFoto" class="btn-quitar" title="Quitar la foto">✕</button>
+                </div>
+            </div>
+            <button id="btnSelAplicar" class="btn-primario">Aplicar cambios</button>
+            <div class="fila-campos">
+                <button id="btnSelDup" class="btn-sec">Duplicar</button>
+                <button id="btnSelDel" class="btn-borrar">Eliminar</button>
+            </div>
+            <button id="btnSelCerrar" class="btn-sec">Cerrar selección</button>
         </div>
 
         <h2>2. Agregar Equipo</h2>
