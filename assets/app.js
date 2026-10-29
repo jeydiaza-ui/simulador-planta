@@ -1252,20 +1252,56 @@ function exportarJSON() {
   ok('Proyecto exportado');
 }
 
-function importarJSON(file) {
+function aplicarImportacion(d, modo) {
+  if (!d || !d.ancho || !Array.isArray(d.bloques)) throw new Error('formato');
+  if (modo === 'agregar') {
+    if (d.fotos) Object.assign(fotos, d.fotos);
+    let n = 0;
+    d.bloques.forEach(b => {
+      const c = JSON.parse(JSON.stringify(b));
+      c.id = nuevoId('b');
+      c.cod = siguienteCodigo(c.cat);
+      const px = num(c.x, 0), py = num(c.y, 0);
+      if (ubicarEn(c, px, py)) n++;
+    });
+    if (n) { render(); guardarFotosLocal(); guardarHistorial(); }
+    ok(n + ' elemento(s) agregado(s) al plano');
+    return n;
+  }
+  estado = { ancho: d.ancho, fondo: d.fondo, bloques: d.bloques, aberturas: d.aberturas || [] };
+  if (d.fotos) Object.assign(fotos, d.fotos);
+  guardarFotosLocal();
+  historial = []; histIdx = -1;
+  aplicarEstado(); guardarHistorial();
+  ok('Proyecto abierto');
+  return d.bloques.length;
+}
+
+function importarJSON(file, modo) {
   const r = new FileReader();
   r.onload = () => {
     try {
-      const d = JSON.parse(r.result);
-      if (!d.ancho || !Array.isArray(d.bloques)) throw new Error('formato');
-      estado = { ancho: d.ancho, fondo: d.fondo, bloques: d.bloques, aberturas: d.aberturas || [] };
-      if (d.fotos) Object.assign(fotos, d.fotos);
-      historial = []; histIdx = -1;
-      aplicarEstado(); guardarHistorial();
-      ok('Proyecto importado');
-    } catch (e) { error('El archivo no es un proyecto válido'); }
+      aplicarImportacion(JSON.parse(r.result), modo || 'reemplazar');
+    } catch (e) {
+      error('El archivo no es un proyecto válido');
+    }
   };
   r.readAsText(file);
+}
+
+// coloca un bloque en una posición (o en el hueco libre más cercano)
+function ubicarEn(b, px, py) {
+  const bod = $('bodega');
+  const wpx = b.a * ESCALA, hpx = b.f * ESCALA;
+  if (b.cat !== 'libre' && areaOcupada() + b.a * b.f > estado.ancho * estado.fondo + 1e-9) return false;
+  const x = Math.max(0, Math.min(px, bod.clientWidth - wpx));
+  const y = Math.max(0, Math.min(py, bod.clientHeight - hpx));
+  const libre = buscarLibre({ dataset: { categoria: b.cat } }, wpx, hpx, x, y);
+  if (!libre) return false;
+  b.x = libre.x;
+  b.y = libre.y;
+  estado.bloques.push(b);
+  return true;
 }
 
 /* ============================================================
@@ -1283,10 +1319,18 @@ function iniciar() {
   $('btnMas').addEventListener('click', () => cambiarZoom(0.1));
   $('btnAgregarAb').addEventListener('click', agregarAbertura);
   $('btnExportar').addEventListener('click', exportarJSON);
-  $('btnImportar').addEventListener('click', () => $('fileImportar').click());
+  $('btnImportar').addEventListener('click', () => {
+    $('fileImportar').dataset.modo = 'reemplazar';
+    $('fileImportar').click();
+  });
+  $('btnAgregarJson').addEventListener('click', () => {
+    $('fileImportar').dataset.modo = 'agregar';
+    $('fileImportar').click();
+  });
   $('fileImportar').addEventListener('change', e => {
     const f = e.target.files && e.target.files[0];
-    if (f) importarJSON(f);
+    const modo = e.target.dataset.modo || 'reemplazar';
+    if (f) importarJSON(f, modo);
     e.target.value = '';
   });
   $('btnBorrarTodo').addEventListener('click', () => borrarTodo(false));
@@ -1748,6 +1792,24 @@ function correrTest() {
     const antes = estado.bloques.length;
     duplicarSeleccion();
     return estado.bloques.length === antes + 1;
+  });
+
+  t('importar en modo sumar no borra lo existente', () => {
+    borrarTodo(true);
+    $('categoriaBloque').value = 'objeto'; cambiarCategoria(true);
+    $('nombreBloque').value = 'Existente';
+    $('anchoBloque').value = 2; $('fondoBloque').value = 1; $('altoBloque').value = 2;
+    agregarBloqueAuto();
+    const antes = estado.bloques.length;
+    aplicarImportacion({
+      ancho: 10, fondo: 20,
+      bloques: [{ id: 'x1', cod: 'EQ9', cat: 'objeto', nombre: 'Bobinadora', a: 1.6, f: 1.0,
+                  h: 1.6, color: '#f1c40f', peso: 0, marca: 20, stand: null, estante: null,
+                  foto: null, silueta: false, rot: false, x: 100, y: 100 }],
+      aberturas: []
+    }, 'agregar');
+    return estado.bloques.length === antes + 1 &&
+           estado.bloques.some(b => b.nombre === 'Bobinadora');
   });
 
   cont.textContent = res.join('\n');
