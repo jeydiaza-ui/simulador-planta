@@ -254,7 +254,13 @@ function leerFormulario() {
   };
   if (b.a <= 0 || b.f <= 0) return null;
   b.marca = null;
-  if (cat === 'objeto' && $('conMarca').checked) b.marca = num($('anchoMarca').value, 20);
+  b.marcaColor = 'amarillo-negro';
+  b.marcaForma = 'perimetro';
+  if (cat === 'objeto' && $('conMarca').checked) {
+    b.marca = anchoMarcaActual();
+    if ($('marcaColor')) b.marcaColor = $('marcaColor').value;
+    if ($('marcaForma')) b.marcaForma = $('marcaForma').value;
+  }
   if (cat === 'objeto' && $('esStand').checked) {
     b.stand = {
       niveles: Math.max(1, parseInt($('nivelesStand').value, 10) || 1),
@@ -552,15 +558,31 @@ function crearElBloque(b) {
   bl.appendChild(cont);
   w.appendChild(bl);
 
-  if (b.marca) ponerFranja(w, b.marca);
+  if (b.marca) ponerFranja(w, b);
   return w;
 }
 
-function ponerFranja(w, cm) {
-  const m = Math.max(3, Math.round(cm / 100 * ESCALA));
-  ['arriba', 'abajo', 'izq', 'der'].forEach(k => {
+const LADOS_MARCA = {
+  perimetro: ['arriba', 'abajo', 'izq', 'der'],
+  u: ['izq', 'abajo', 'der'],
+  l: ['izq', 'abajo'],
+  frente: ['abajo'],
+  lados: ['izq', 'der']
+};
+
+function anchoMarcaActual() {
+  const mod = $('marcaAncho');
+  const form = $('anchoMarca');
+  return num(mod ? mod.value : (form ? form.value : 20), 20);
+}
+
+function ponerFranja(w, b) {
+  const m = Math.max(2, Math.round((b.marca || 0) / 100 * ESCALA));
+  const forma = b.marcaForma || 'perimetro';
+  const color = b.marcaColor || 'amarillo-negro';
+  (LADOS_MARCA[forma] || LADOS_MARCA.perimetro).forEach(k => {
     const d = document.createElement('div');
-    d.className = 'franja f-' + k;
+    d.className = 'franja f-' + k + ' ' + color;
     d.style.setProperty('--fm', m + 'px');
     w.appendChild(d);
   });
@@ -1052,6 +1074,7 @@ function abrir3D() {
   }));
 
   const verTechos = $('verTechos') && $('verTechos').checked;
+  const tipoCubierta = $('cubierta') ? $('cubierta').value : 'plana';
   const hP = (num($('altoPared').value, 4)) * ESCALA;
   const colP = $('colorPared').value;
   const ajuste = $('ajustePared').value;
@@ -1072,6 +1095,28 @@ function abrir3D() {
   pared(mundoW, 'translate3d(0px, ' + (-hP) + 'px, ' + mundoF + 'px) rotateY(180deg)', 'abajo', 0.95);
   pared(mundoF, 'translate3d(' + (-mundoF / 2) + 'px, ' + (-hP) + 'px, ' + (mundoF / 2) + 'px) rotateY(90deg)', 'izq', 0.85);
   pared(mundoF, 'translate3d(' + (mundoW - mundoF / 2) + 'px, ' + (-hP) + 'px, ' + (mundoF / 2) + 'px) rotateY(-90deg)', 'der', 0.9);
+
+  if (verTechos && tipoCubierta !== 'ninguna') {
+    const col = 'rgba(126,138,150,.88)';
+    const est = { backgroundColor: col, outline: '1px solid rgba(0,0,0,.28)' };
+    if (tipoCubierta === 'plana') {
+      mundo.appendChild(cara(mundoW, mundoF,
+        'translate3d(0px,' + (-hP) + 'px,0px) rotateX(90deg)',
+        Object.assign({ transformOrigin: '0 0' }, est)));
+    } else {
+      const hC = Math.max(hP + 10, (num($('alturaCumbrera').value, 6)) * ESCALA);
+      const rise = hC - hP, half = mundoW / 2;
+      const ang = Math.atan2(rise, half) * 180 / Math.PI;
+      const len = Math.sqrt(half * half + rise * rise);
+      mundo.appendChild(cara(len, mundoF,
+        'translate3d(0px,' + (-hP) + 'px,0px) rotateZ(' + (-ang) + 'deg) rotateX(90deg)',
+        Object.assign({ transformOrigin: '0 0' }, est)));
+      mundo.appendChild(cara(len, mundoF,
+        'translate3d(' + mundoW + 'px,' + (-hP) + 'px,0px) scaleX(-1) rotateZ(' +
+        (-ang) + 'deg) rotateX(90deg)',
+        Object.assign({ transformOrigin: '0 0' }, est)));
+    }
+  }
 
   estado.bloques.forEach(b => {
     const l = b.x, t = b.y, w = b.a * ESCALA, d = b.f * ESCALA;
@@ -1319,6 +1364,73 @@ function ubicarEn(b, px, py) {
 }
 
 /* ============================================================
+   MÓDULOS (pestañas)
+   ============================================================ */
+function cambiarTab(nombre) {
+  document.querySelectorAll('.marca').forEach(b =>
+    b.classList.toggle('activa', b.dataset.tab === nombre));
+  document.querySelectorAll('.tab').forEach(s =>
+    s.classList.toggle('activa', s.dataset.tab === nombre));
+  const f = $('formElemento');
+  if (nombre === 'equipos') {
+    $('hostEq').appendChild(f);
+    f.style.display = 'block';
+    elegirTipo('objeto');
+  } else if (nombre === 'edif') {
+    $('hostEdif').appendChild(f);
+    f.style.display = 'block';
+    elegirTipo('edificacion');
+  } else {
+    f.style.display = 'none';
+  }
+  if (nombre === 'marcacion') pintarVistaMarca();
+}
+
+function datosMarca() {
+  return {
+    color: $('marcaColor') ? $('marcaColor').value : 'amarillo-negro',
+    forma: $('marcaForma') ? $('marcaForma').value : 'perimetro',
+    cm: num($('marcaAncho') ? $('marcaAncho').value : 20, 20)
+  };
+}
+
+function pintarVistaMarca() {
+  const v = $('vistaMarca');
+  if (!v) return;
+  const m = datosMarca();
+  v.innerHTML = '';
+  const caja = document.createElement('div');
+  caja.style.cssText = 'position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);' +
+    'width:150px;height:36px;';
+  const fm = Math.max(3, Math.round(m.cm / 100 * 20));
+  (LADOS_MARCA[m.forma] || LADOS_MARCA.perimetro).forEach(k => {
+    const d = document.createElement('div');
+    d.className = 'franja f-' + k + ' ' + m.color;
+    d.style.setProperty('--fm', (fm + 3) + 'px');
+    caja.appendChild(d);
+  });
+  const dentro = document.createElement('div');
+  dentro.style.cssText = 'position:absolute;inset:9px 13px;background:#F4D03F;' +
+    'border:1px solid #6b6b6b;border-radius:2px;';
+  caja.appendChild(dentro);
+  v.appendChild(caja);
+}
+
+function aplicarMarca(soloSeleccionado) {
+  const m = datosMarca();
+  const poner = b => { b.marca = m.cm; b.marcaColor = m.color; b.marcaForma = m.forma; };
+  if (soloSeleccionado) {
+    const b = estado.bloques.find(x => x.id === selId);
+    if (!b) { aviso('Primero selecciona un elemento en el plano'); return; }
+    poner(b);
+  } else {
+    estado.bloques.filter(b => b.cat === 'objeto').forEach(poner);
+  }
+  render(); guardarHistorial();
+  ok('Marcación aplicada');
+}
+
+/* ============================================================
    BIBLIOTECA DE EQUIPOS
    ============================================================ */
 function cargarBibLocal() {
@@ -1391,7 +1503,7 @@ function crearDesdeBib(id, clientX, clientY) {
   const nb = {
     id: nuevoId('b'), cod: siguienteCodigo('objeto'), cat: 'objeto', nombre: b.nombre,
     a: b.a, f: b.f, h: b.h, color: '#f1c40f', peso: 0,
-    marca: num($('anchoMarca').value, 20), stand: null, estante: null,
+    marca: anchoMarcaActual(), stand: null, estante: null,
     foto: null, silueta: true, rot: false, x: 0, y: 0
   };
   if (!ubicarEn(nb, Math.round(px / SNAP) * SNAP, Math.round(py / SNAP) * SNAP)) return false;
@@ -1471,6 +1583,20 @@ function iniciar() {
     crearDesdeBib(id, e.clientX, e.clientY);
   });
   $('btnBibAdd').addEventListener('click', agregarABiblioteca);
+
+  document.querySelectorAll('.marca').forEach(b =>
+    b.addEventListener('click', () => cambiarTab(b.dataset.tab)));
+  ['marcaColor', 'marcaForma', 'marcaAncho'].forEach(id => {
+    const el = $(id);
+    if (!el) return;
+    el.addEventListener('change', () => {
+      pintarVistaMarca();
+      // el ancho elegido en el módulo es el que se usa al crear equipos
+      if (id === 'marcaAncho' && $('anchoMarca')) $('anchoMarca').value = el.value;
+    });
+  });
+  $('btnMarcaSel').addEventListener('click', () => aplicarMarca(true));
+  $('btnMarcaTodos').addEventListener('click', () => aplicarMarca(false));
   $('esStand').addEventListener('change', e => { $('standCampos').style.display = e.target.checked ? 'flex' : 'none'; });
   $('esEstante').addEventListener('change', e => { $('estanteCampos').style.display = e.target.checked ? 'flex' : 'none'; });
   $('pasoMover').addEventListener('change', e => { SNAP = parseFloat(e.target.value) || 2; });
@@ -1559,6 +1685,7 @@ function iniciar() {
   v.addEventListener('wheel', e => { e.preventDefault(); cam.z *= Math.exp(-e.deltaY * 0.001); aplicarCamara(); }, { passive: false });
 
   elegirTipo('objeto');
+  cambiarTab('bodega');
   SNAP = parseFloat($('pasoMover').value) || 2;
 
   cargarBibLocal();
@@ -1616,7 +1743,7 @@ function aplicarSeleccion() {
   b.nombre = ($('selNombre').value || '').trim() || b.nombre;
   b.a = na; b.f = nf; b.h = nh;
   b.color = $('selColor').value;
-  b.marca = $('selMarca').checked ? num($('anchoMarca').value, 20) : null;
+  b.marca = $('selMarca').checked ? anchoMarcaActual() : null;
   render(); guardarHistorial(); seleccionar(b.id);
   ok('Cambios aplicados');
 }
@@ -2042,6 +2169,31 @@ function correrTest() {
     guardarBibLocal();
     pintarBiblioteca();
     return medio === antes - 1 && catalogo().length === antes;
+  });
+
+  t('cambiar de módulo mueve el formulario', () => {
+    cambiarTab('equipos');
+    const enEq = document.getElementById('formElemento').parentElement.id === 'hostEq';
+    cambiarTab('edif');
+    const enEd = document.getElementById('formElemento').parentElement.id === 'hostEdif';
+    cambiarTab('bodega');
+    return enEq && enEd;
+  });
+
+  t('marcación con color y forma', () => {
+    borrarTodo(true);
+    $('marcaColor').value = 'rojo-blanco';
+    $('marcaForma').value = 'u';
+    $('marcaAncho').value = '30';
+    $('categoriaBloque').value = 'objeto'; cambiarCategoria(true);
+    $('nombreBloque').value = 'Con marca';
+    $('anchoBloque').value = 2; $('fondoBloque').value = 1; $('altoBloque').value = 2;
+    agregarBloqueAuto();
+    const b = estado.bloques[estado.bloques.length - 1];
+    const franjas = document.querySelectorAll('.franja.rojo-blanco').length;
+    $('marcaColor').value = 'amarillo-negro';
+    $('marcaForma').value = 'perimetro';
+    return b.marca === 30 && b.marcaForma === 'u' && b.marcaColor === 'rojo-blanco' && franjas === 3;
   });
 
   cont.textContent = res.join('\n');
