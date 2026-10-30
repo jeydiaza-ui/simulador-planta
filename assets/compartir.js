@@ -105,9 +105,15 @@
                                 (H - margenSup - margenInf) / Math.max(1, maxY - minY));
         const offX = (W - (maxX - minX) * escala) / 2 - minX * escala;
         const offY = margenSup + (H - margenSup - margenInf - (maxY - minY) * escala) / 2 - minY * escala;
+        const zoom = Math.max(0.4, Math.min(3, Number(opts.zoom) || 1));
         const P = (x, y, z) => {
             const p = bruto(x, y, z);
-            return { x: p.x * escala + offX, y: p.y * escala + offY };
+            let sx = p.x * escala + offX, sy = p.y * escala + offY;
+            if (zoom !== 1) {
+                sx = W / 2 + (sx - W / 2) * zoom;
+                sy = H / 2 + (sy - H / 2) * zoom;
+            }
+            return { x: sx, y: sy };
         };
         const M = v => v / 20;   // px del plano -> metros del modelo
 

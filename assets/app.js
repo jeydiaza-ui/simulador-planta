@@ -50,7 +50,8 @@ let cam = { rx: -55, ry: -25, z: 1 };
 let mundoW = 0, mundoF = 0;
 let sprites = [];
 let imagenCache = null;
-let vivo3dAbierto = false, vivoGiro = 0, vivoToken = 0, vivoTimer = null, vivoDrag = null;
+let vivo3dAbierto = false, vivoGiro = 0, vivoZoom = 1, vivoToken = 0, vivoTimer = null, vivoDrag = null;
+let vivoPunteros = new Map(), vivoPinch = null;
 let fotoPendiente = null;
 let bibExtra = [], bibOcultos = [];
 
@@ -354,6 +355,7 @@ let colocando = null;
 
 function iniciarColocacion(b, cant, fotoUrl, silueta) {
   cancelarColocacion();
+  cerrarPanelSiMovil();
   colocando = { b: b, cant: cant, restantes: cant, foto: fotoUrl, silueta: !!silueta };
   document.body.classList.add('colocando');
   const bod = $('bodega');
@@ -415,6 +417,10 @@ function colocarEnPunto(px, py) {
   if (!libre) { error('No hay espacio libre en ese punto'); return false; }
   b.x = libre.x;
   b.y = libre.y;
+  if (b.cat === 'muro') {
+    const edM = estado.bloques.find(e => e.cat === 'edificacion' && dentroDe(b, e));
+    if (edM) ajustarMuroAEdificacion(b, edM);
+  }
   estado.bloques.push(b);
   render(); guardarHistorial();
   marcarPosicion(b); seleccionar(b.id);
@@ -468,12 +474,19 @@ function colocarDentroDe(ed, b, cant, fotoUrl, silueta) {
     copia.silueta = !!silueta;
     if (fid) copia.foto = fid;
     if (!ubicarDentro(ed, copia)) break;
+    if (copia.cat === 'muro') ajustarMuroAEdificacion(copia, ed);
     estado.bloques.push(copia);
     ultimo = copia;
     n++;
   }
   if (!n) {
-    error('No cabe dentro de ' + ed.nombre + '. Hazla más grande o quita elementos.');
+    const rs = recintosDe(ed).slice().sort((a2, b2) => b2.m2 - a2.m2);
+    const disp = rs.length && rs[0]
+      ? (rs[0].w / ESCALA).toFixed(2) + ' × ' + (rs[0].h / ESCALA).toFixed(2) + ' m'
+      : (ed.a.toFixed(2) + ' × ' + ed.f.toFixed(2) + ' m');
+    error('No cabe «' + b.nombre + '» (' + b.a.toFixed(2) + ' × ' + b.f.toFixed(2) +
+      ' m) dentro de ' + ed.nombre + '. El espacio más amplio mide ' + disp +
+      '. Ajusta las medidas o parte el área con ↔ / ↕.');
     return false;
   }
   if (fid) guardarFotosLocal();
@@ -849,6 +862,10 @@ function iniciarArrastreBloque(e, id) {
       return;
     }
     b.x = libre.x; b.y = libre.y;
+    if (b.cat === 'muro') {
+      const edM = estado.bloques.find(x => x.cat === 'edificacion' && dentroDe(b, x));
+      if (edM) ajustarMuroAEdificacion(b, edM);
+    }
     const dx = b.x - x0, dy = b.y - y0;
     if (hijos.length && (dx || dy)) {
       b.x = x0; b.y = y0;
@@ -2001,6 +2018,23 @@ async function compartir3D(soloDescargar) {
 /* ============================================================
    VISTA 3D EN VIVO (mientras se edita)
    ============================================================ */
+function ubicarVivo3D(pos) {
+    const p = $('vivo3d');
+    if (!p || !/^(tl|tr|bl|br)$/.test(String(pos))) return;
+    p.classList.remove('pos-tl', 'pos-tr', 'pos-bl', 'pos-br');
+    p.classList.add('pos-' + pos);
+}
+
+function cerrarPanelSiMovil() {
+    if (window.innerWidth > 820) return;
+    const p = $('panel');
+    if (p) p.classList.remove('abierto');
+    const b = $('panelBackdrop');
+    if (b) b.classList.remove('activa');
+    const btn = $('btn-panel');
+    if (btn) btn.setAttribute('aria-expanded', 'false');
+}
+
 function alternarVivo3D(forzar, recordar) {
     const panel = $('vivo3d');
     if (!panel) return;
@@ -2028,7 +2062,7 @@ async function actualizarVivo3D() {
     const token = ++vivoToken;
     let cv = null;
     try {
-        cv = await window.CTC3D.render(instantanea(), { giro: vivoGiro, compacto: true });
+        cv = await window.CTC3D.render(instantanea(), { giro: vivoGiro, zoom: vivoZoom, compacto: true });
     } catch (_) { return; }
     if (!cv || token !== vivoToken || !vivo3dAbierto) return;
     const host = $('vivoLienzo');
@@ -2359,18 +2393,90 @@ function refrescarEdificaciones() {
         t.innerHTML = '<b>' + escapar((ed.cod ? ed.cod + ' · ' : '') + ed.nombre) + '</b>' +
             '<small>' + ed.a.toFixed(2) + ' × ' + ed.f.toFixed(2) + ' m · ' +
             (ed.a * ed.f).toFixed(2) + ' m² · ' + muros + ' muro(s) · ' + eqs + ' equipo(s)</small>';
-        const b1 = document.createElement('button');
-        b1.type = 'button'; b1.className = 'mini'; b1.textContent = 'Ver';
-        b1.addEventListener('click', () => verEnPlano(ed.id));
-        const b2 = document.createElement('button');
-        b2.type = 'button'; b2.className = 'mini'; b2.textContent = 'Editar';
-        b2.addEventListener('click', () => {
+        const acc = document.createElement('div');
+        acc.className = 'edif-acciones';
+        const mini = (txt, title, fn) => {
+            const b = document.createElement('button');
+            b.type = 'button'; b.className = 'mini';
+            b.textContent = txt; b.title = title || txt;
+            b.addEventListener('click', fn);
+            acc.appendChild(b);
+        };
+        mini('Ver', 'Ver en el plano', () => verEnPlano(ed.id));
+        mini('Editar', 'Editar medidas', () => {
             seleccionar(ed.id);
             if ($('panel')) $('panel').scrollTo({ top: 0, behavior: 'smooth' });
         });
-        fila.append(t, b1, b2);
+        mini('＋ Equipo', 'Agregar un equipo dentro de ' + ed.nombre, () => equipoDentroDe(ed));
+        mini('↔', 'Partir el área en dos (horizontal)', () => dividirArea('h', ed));
+        mini('↕', 'Partir el área en dos (vertical)', () => dividirArea('v', ed));
+        fila.append(t, acc);
         c.appendChild(fila);
     });
+}
+
+function dividirArea(dir, ed) {
+    const rs = recintosDe(ed).slice().sort((a, b) => b.m2 - a.m2);
+    if (!rs.length) return false;
+    const r = rs[0];
+    const esV = dir === 'v';
+    const esp = 0.15;
+    const m = {
+        id: nuevoId('b'), cod: siguienteCodigo('muro'), cat: 'muro',
+        nombre: esV ? 'División vertical' : 'División horizontal',
+        a: esV ? esp : r.w / ESCALA,
+        f: esV ? r.h / ESCALA : esp,
+        h: Math.min(2.4, Math.max(1, num(ed.h, 2.6) - 0.2)),
+        color: '#5d6d7e', peso: 0, marca: null, stand: null, estante: null,
+        foto: null, silueta: false, rot: false,
+        x: esV ? r.x + r.w / 2 - (esp * ESCALA) / 2 : r.x,
+        y: esV ? r.y : r.y + r.h / 2 - (esp * ESCALA) / 2
+    };
+    estado.bloques.push(m);
+    render(); guardarHistorial();
+    if ($('dentroDe')) $('dentroDe').value = ed.id;
+    if ($('listaRecintos')) pintarRecintos();
+    ok('Área partida en dos. Escribe el nombre de cada tramo.');
+    return true;
+}
+
+function equipoDentroDe(ed) {
+    if (!ed) return;
+    if ($('dentroDe')) $('dentroDe').value = ed.id;
+    cambiarTab('equipos');
+    elegirTipo('objeto');
+    if ($('dentroDe')) $('dentroDe').value = ed.id;
+    const disp = medidasDisponibles(ed);
+    const a = Math.max(0.3, Math.min(1.6, disp.a - 0.2));
+    const f = Math.max(0.3, Math.min(1.0, disp.f - 0.2));
+    const h = Math.max(0.5, Math.min(1.6, num(ed.h, 2.6) - 0.4));
+    $('anchoBloque').value = a.toFixed(2);
+    $('fondoBloque').value = f.toFixed(2);
+    $('altoBloque').value = h.toFixed(2);
+    $('nombreBloque').value = '';
+    $('nombreBloque').focus();
+    if ($('formElemento')) {
+        try { $('formElemento').scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (_) { }
+    }
+    aviso('Equipo para ' + ed.nombre + ' · escribe nombre y medidas, luego «+ Ubicar»');
+}
+
+function medidasDisponibles(ed) {
+    const rs = recintosDe(ed).slice().sort((a, b) => b.m2 - a.m2);
+    if (!rs.length) return { a: ed.a, f: ed.f };
+    return { a: rs[0].w / ESCALA, f: rs[0].h / ESCALA };
+}
+
+function ajustarMuroAEdificacion(m, ed) {
+    if (!m || m.cat !== 'muro' || !ed) return;
+    const esV = m.f > m.a;
+    if (!esV) {
+        if (m.a >= ed.a - 0.3) { m.a = ed.a; m.x = ed.x; }
+        else if (Math.abs(m.x - ed.x) < 0.2) m.x = ed.x;
+    } else {
+        if (m.f >= ed.f - 0.3) { m.f = ed.f; m.y = ed.y; }
+        else if (Math.abs(m.y - ed.y) < 0.2) m.y = ed.y;
+    }
 }
 
 function refrescarPaneles() {
@@ -2492,31 +2598,62 @@ function iconoEquipo() {
     '<rect x="26" y="60" width="68" height="8" rx="3" fill="#b0bec5"/></svg>');
 }
 
-function agregarBibDesdeForm() {
+function nombreDeArchivo(nombre) {
+  return String(nombre || 'equipo').replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ').trim().slice(0, 40) || 'Equipo';
+}
+
+function fotoDeArchivo(file, recorta) {
+  return new Promise(res => {
+    cargarFoto(file, url => {
+      if (!url) return res(null);
+      if (recorta) recortarFondo(url, out => res(out || url));
+      else res(url);
+    }, 750);
+  });
+}
+
+function nuevaBibItem(nombre, a, f, h, foto) {
+  return {
+    id: 'u' + Date.now() + Math.random().toString(36).slice(2, 6),
+    nombre: nombre, a: +a.toFixed(2), f: +f.toFixed(2), h: +h.toFixed(2),
+    foto: foto || iconoEquipo(), silueta: !!foto
+  };
+}
+
+async function agregarBibDesdeForm() {
   const nombre = ($('bibNombre').value || '').trim().slice(0, 40);
   const a = num($('bibAncho').value, 0), f = num($('bibFondo').value, 0), h = num($('bibAlto').value, 0);
+  const input = $('bibFoto');
+  const files = input && input.files ? Array.from(input.files) : [];
+  const recorta = $('bibRecorte') ? $('bibRecorte').checked : true;
+  const limpiar = () => {
+    ['bibNombre', 'bibAncho', 'bibFondo', 'bibAlto'].forEach(id => { if ($(id)) $(id).value = ''; });
+    if (input) input.value = '';
+  };
+
+  // varios archivos: un equipo por imagen (nombre = archivo, medidas = las del formulario o 1 m)
+  if (files.length > 1) {
+    const A = a > 0 ? a : 1, F = f > 0 ? f : 1, H = h > 0 ? h : 1;
+    const nuevos = [];
+    for (let i = 0; i < files.length; i++) {
+      const foto = await fotoDeArchivo(files[i], recorta);
+      const nombreItem = (nombre ? nombre + ' ' + (i + 1) : nombreDeArchivo(files[i].name));
+      nuevos.push(nuevaBibItem(nombreItem, A, F, H, foto));
+    }
+    nuevos.forEach(x => bibExtra.push(x));
+    guardarBibLocal(); pintarBiblioteca(); limpiar();
+    ok(nuevos.length + ' equipos agregados a la biblioteca');
+    return true;
+  }
+
   if (!nombre) { error('Ponle nombre al equipo'); return false; }
   if (a <= 0 || f <= 0 || h <= 0) { error('Completa ancho, fondo y alto (en metros)'); return false; }
-  const file = $('bibFoto') && $('bibFoto').files && $('bibFoto').files[0];
-  const recorta = $('bibRecorte') ? $('bibRecorte').checked : true;
-  const push = foto => {
-    bibExtra.push({
-      id: 'u' + Date.now() + Math.random().toString(36).slice(2, 6),
-      nombre: nombre, a: +a.toFixed(2), f: +f.toFixed(2), h: +h.toFixed(2),
-      foto: foto || iconoEquipo(), silueta: !!foto
-    });
-    guardarBibLocal();
-    pintarBiblioteca();
-    ['bibNombre', 'bibAncho', 'bibFondo', 'bibAlto'].forEach(id => { if ($(id)) $(id).value = ''; });
-    if ($('bibFoto')) $('bibFoto').value = '';
-    ok(nombre + ' agregado a la biblioteca');
-  };
-  if (!file) { push(null); return true; }
-  cargarFoto(file, url => {
-    if (!url) { error('No se pudo leer la imagen'); return; }
-    if (recorta) recortarFondo(url, out => push(out || url));
-    else push(url);
-  }, 750);
+  let foto = null;
+  if (files.length) foto = await fotoDeArchivo(files[0], recorta);
+  bibExtra.push(nuevaBibItem(nombre, a, f, h, foto));
+  guardarBibLocal(); pintarBiblioteca(); limpiar();
+  ok(nombre + ' agregado a la biblioteca');
   return true;
 }
 
@@ -2675,9 +2812,19 @@ async function iniciar() {
   /* ---------- edificación destino ---------- */
   on('dentroDe', 'change', () => {
     const ed = dentroSeleccionado();
-    if (ed && $('categoriaBloque').value === 'muro') {
+    if (!ed) return;
+    const cat = $('categoriaBloque').value;
+    if (cat === 'muro') {
       $('anchoBloque').value = ed.a;
       aviso('Muro del ancho de ' + ed.nombre + ' (puedes ajustarlo)');
+    } else if (cat === 'objeto') {
+      const disp = medidasDisponibles(ed);
+      const a = num($('anchoBloque').value, 1.6), f = num($('fondoBloque').value, 1);
+      if (a > disp.a - 0.2 || f > disp.f - 0.2) {
+        $('anchoBloque').value = Math.max(0.3, Math.min(a, disp.a - 0.2)).toFixed(2);
+        $('fondoBloque').value = Math.max(0.3, Math.min(f, disp.f - 0.2)).toFixed(2);
+        aviso('Ajusté las medidas para que quepan en ' + ed.nombre);
+      }
     }
   });
 
@@ -2765,6 +2912,7 @@ async function iniciar() {
   on('btnCerrar3D', 'click', cerrar3D);
   on('btnVivo3D', 'click', () => alternarVivo3D());
   on('btnVivoCerrar', 'click', () => alternarVivo3D(false));
+  on('btnVivoReset', 'click', () => { vivoZoom = 1; vivoGiro = 0; actualizarVivo3D(); });
   on('btnVivoAbrir', 'click', abrir3D);
   on('btnVivoCompartir', 'click', () => compartir3D(false));
   on('btnImprimir', 'click', imprimir);
@@ -2780,10 +2928,23 @@ async function iniciar() {
 
   /* ---------- panel móvil ---------- */
   const panel = $('panel');
+  const abrirPanel = () => {
+    panel.classList.add('abierto');
+    const b = $('panelBackdrop');
+    if (b) b.classList.add('activa');
+    $('btn-panel').setAttribute('aria-expanded', 'true');
+  };
+  const cerrarPanel = () => {
+    panel.classList.remove('abierto');
+    const b = $('panelBackdrop');
+    if (b) b.classList.remove('activa');
+    $('btn-panel').setAttribute('aria-expanded', 'false');
+  };
   on('btn-panel', 'click', () => {
-    const abierto = panel.classList.toggle('abierto');
-    $('btn-panel').setAttribute('aria-expanded', abierto ? 'true' : 'false');
+    if (panel.classList.contains('abierto')) cerrarPanel(); else abrirPanel();
   });
+  on('panelBackdrop', 'click', cerrarPanel);
+  on('btnCerrarPanel', 'click', cerrarPanel);
 
   /* ---------- teclado / impresión ---------- */
   window.addEventListener('beforeprint', construirLeyenda);
@@ -2818,19 +2979,84 @@ async function iniciar() {
   /* ---------- 3D en vivo: girar con el dedo ---------- */
   const vl = $('vivoLienzo');
   if (vl) {
+    const dist = pts => Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+    const soltarPuntero = e => {
+      vivoPunteros.delete(e.pointerId);
+      if (vivoPunteros.size < 2) vivoPinch = null;
+      if (!vivoPunteros.size) vivoDrag = null;
+    };
     vl.addEventListener('pointerdown', e => {
       if (e.button !== undefined && e.button !== 0) return;
-      vivoDrag = { x: e.clientX, giro: vivoGiro };
       try { vl.setPointerCapture(e.pointerId); } catch (_) { }
+      vivoPunteros.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (vivoPunteros.size === 1) {
+        vivoDrag = { x: e.clientX, giro: vivoGiro };
+      } else if (vivoPunteros.size === 2) {
+        const pts = Array.from(vivoPunteros.values());
+        vivoPinch = { d: Math.max(1, dist(pts)), zoom: vivoZoom };
+        vivoDrag = null;
+      }
     });
     vl.addEventListener('pointermove', e => {
-      if (!vivoDrag) return;
-      vivoGiro = vivoDrag.giro + (e.clientX - vivoDrag.x) * 0.008;
-      programarVivo3D();
+      if (!vivoPunteros.has(e.pointerId)) return;
+      vivoPunteros.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (vivoPunteros.size >= 2 && vivoPinch) {
+        const pts = Array.from(vivoPunteros.values()).slice(0, 2);
+        vivoZoom = Math.max(0.6, Math.min(2.6, vivoPinch.zoom * dist(pts) / vivoPinch.d));
+        programarVivo3D();
+        return;
+      }
+      if (vivoDrag) {
+        vivoGiro = vivoDrag.giro + (e.clientX - vivoDrag.x) * 0.008;
+        programarVivo3D();
+      }
     });
-    ['pointerup', 'pointercancel'].forEach(ev =>
-      vl.addEventListener(ev, () => { vivoDrag = null; }));
-    vl.addEventListener('dblclick', abrir3D);
+    ['pointerup', 'pointercancel'].forEach(ev => vl.addEventListener(ev, soltarPuntero));
+    vl.addEventListener('wheel', e => {
+      e.preventDefault();
+      vivoZoom = Math.max(0.6, Math.min(2.6, vivoZoom * Math.exp(-e.deltaY * 0.0015)));
+      programarVivo3D();
+    }, { passive: false });
+    vl.addEventListener('dblclick', () => {
+      vivoZoom = 1; vivoGiro = 0; actualizarVivo3D();
+    });
+  }
+
+  /* ---------- mover el panel 3D a otra esquina ---------- */
+  const cabVivo = document.querySelector('.vivo-cab');
+  if (cabVivo) {
+    let arrastreVivo = null;
+    const finVivo = () => {
+      if (!arrastreVivo) return;
+      arrastreVivo = null;
+      const panel = $('vivo3d'); if (!panel) return;
+      const r = panel.getBoundingClientRect();
+      const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+      const pos = (cy < window.innerHeight / 2 ? 't' : 'b') + (cx < window.innerWidth / 2 ? 'l' : 'r');
+      panel.style.left = ''; panel.style.top = '';
+      panel.style.right = ''; panel.style.bottom = '';
+      ubicarVivo3D(pos);
+      try { localStorage.setItem('ctc_vivo3d_pos', pos); } catch (_) { }
+    };
+    cabVivo.addEventListener('pointerdown', e => {
+      if (e.target.closest('button')) return;
+      const panel = $('vivo3d'); if (!panel) return;
+      const r = panel.getBoundingClientRect();
+      arrastreVivo = { dx: e.clientX - r.left, dy: e.clientY - r.top };
+      panel.style.left = r.left + 'px'; panel.style.top = r.top + 'px';
+      panel.style.right = 'auto'; panel.style.bottom = 'auto';
+      try { cabVivo.setPointerCapture(e.pointerId); } catch (_) { }
+      e.preventDefault();
+    });
+    cabVivo.addEventListener('pointermove', e => {
+      if (!arrastreVivo) return;
+      const panel = $('vivo3d'); if (!panel) return;
+      const w = panel.offsetWidth, h = panel.offsetHeight;
+      const x = Math.max(4, Math.min(window.innerWidth - w - 4, e.clientX - arrastreVivo.dx));
+      const y = Math.max(4, Math.min(window.innerHeight - h - 4, e.clientY - arrastreVivo.dy));
+      panel.style.left = x + 'px'; panel.style.top = y + 'px';
+    });
+    ['pointerup', 'pointercancel'].forEach(ev => cabVivo.addEventListener(ev, finVivo));
   }
 
   /* ---------- guardado al salir / cambiar de app ---------- */
@@ -2876,8 +3102,12 @@ async function iniciar() {
   refrescarFotosPared();
   refrescarPaneles();
   if (!MODO_TEST) {
-    let pref = null;
-    try { pref = localStorage.getItem('ctc_vivo3d'); } catch (_) { }
+    let pref = null, pos = null;
+    try {
+      pref = localStorage.getItem('ctc_vivo3d');
+      pos = localStorage.getItem('ctc_vivo3d_pos');
+    } catch (_) { }
+    if (pos) ubicarVivo3D(pos);
     const abrirVivo = pref !== null ? pref === '1' : window.innerWidth >= 1100;
     if (abrirVivo) alternarVivo3D(true, false);
   }
@@ -2899,7 +3129,12 @@ function seleccionar(id) {
   const b = estado.bloques.find(x => x.id === id);
   const box = $('selBox');
   if (!box) return;
-  if (!b) { selId = null; box.style.display = 'none'; return; }
+  if (!b) {
+    selId = null;
+    box.style.display = 'none';
+    document.querySelectorAll('.bloque-wrapper.sel').forEach(w => w.classList.remove('sel'));
+    return;
+  }
   selId = id;
   document.querySelectorAll('.bloque-wrapper').forEach(w =>
     w.classList.toggle('sel', w.dataset.id === id));
@@ -2961,6 +3196,10 @@ function aplicarSeleccion() {
   b.a = na; b.f = nf; b.h = nh;
   b.color = $('selColor').value;
   b.marca = $('selMarca').checked ? anchoMarcaActual() : null;
+  if (b.cat === 'muro') {
+    const edM = estado.bloques.find(e => e.cat === 'edificacion' && dentroDe(b, e));
+    if (edM) ajustarMuroAEdificacion(b, edM);
+  }
   if (hijos.length) {
     hijos.forEach(h => {
       h.x = limitar(h.x, b.x, b.x + b.a * ESCALA - h.a * ESCALA);

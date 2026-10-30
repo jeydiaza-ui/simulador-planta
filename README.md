@@ -6,7 +6,7 @@ Funciona sin conexión, se instala en el celular o en el PC y **guarda el trabaj
 
 ![Vista 3D del taller](docs/v14-3d.png)
 
-> Versión **1.4.1** · Un solo HTML + CSS + JS, **sin dependencias** · Publicada en
+> Versión **1.4.2** · Un solo HTML + CSS + JS, **sin dependencias** · Publicada en
 > [GitHub Pages](https://jeydiaza-ui.github.io/simulador-planta/).
 
 ## ⬇️ Descargar
@@ -20,8 +20,16 @@ Funciona sin conexión, se instala en el celular o en el PC y **guarda el trabaj
 ## 🚀 Lo nuevo en la versión 1.4
 
 - **3D en vivo**: un panel flotante muestra el taller en 3D y se actualiza solo cada vez que
-  agregas o mueves algo. Se abre con el botón **🧊 3D en vivo** (arriba a la derecha del plano)
-  y se gira arrastrando. En el PC aparece abierto al entrar; en el celular se abre con un toque.
+  agregas o mueves algo. Se gira arrastrando, se acerca con **pellizco** (o rueda) y se puede
+  **arrastrar a otra esquina**. En el PC aparece abierto al entrar; en el celular se abre con un toque.
+- **Partir áreas en dos**: cada edificación tiene los botones **↔** y **↕**; al pulsarlos crea
+  el muro divisorio completo y el área se convierte en dos recintos con su nombre y su m².
+  También aparece **＋ Equipo** para meter una máquina o mesa directamente dentro.
+
+  ![Partir áreas y agregar equipos dentro](docs/v14-dividir.png)
+- **Varios equipos con foto de una vez**: en la biblioteca puedes elegir **varias imágenes a la vez**
+  y se crean varios equipos, cada uno con su imagen.
+- **Cuadrícula doble**: 1 m marcado y una línea tenue cada **0.5 m** para ubicar con precisión.
 - **Trabajo por etapas**: 1 Taller · 2 Edificaciones · 3 Equipos · 4 Marcación · 5 Guardar.
 - **Guardado automático real** en el dispositivo (IndexedDB, con las fotos incluidas).
   Botones para **guardar un archivo** y **abrirlo en otro celular o PC**.

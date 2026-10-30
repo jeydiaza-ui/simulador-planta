@@ -32,6 +32,7 @@
     <button id="btn-panel" class="btn-panel" aria-controls="panel" aria-expanded="false" title="Mostrar / ocultar panel">☰</button>
 
     <aside id="panel">
+        <button id="btnCerrarPanel" class="btn-cerrar-panel" type="button" title="Cerrar panel">✕</button>
         <div class="marcas" role="tablist">
             <button type="button" class="marca activa" data-tab="taller">1 · Taller</button>
             <button type="button" class="marca" data-tab="edif">2 · Edificaciones</button>
@@ -125,9 +126,10 @@
             <div id="hostEdif"></div>
 
             <h2>Edificaciones del plano</h2>
+            <p class="ayuda">En cada edificación: <b>Ver</b>, <b>Editar</b>, <b>＋ Equipo</b> para
+                meter una máquina o mesa, y <b>↔</b> / <b>↕</b> para partir el área más grande en dos.</p>
             <div id="listaEdif" class="lista-edif"></div>
 
-            <h2>Puertas y ventanas</h2>
             <div id="hostAbEdif"></div>
 
             <h2>Recintos y áreas</h2>
@@ -154,7 +156,10 @@
                     <div><label for="bibAlto">Alto (m)</label><input type="number" id="bibAlto" step="0.05" min="0.1" value="1"></div>
                 </div>
                 <div class="form-group"><label for="bibFoto">Imagen (foto o render)</label>
-                    <input type="file" id="bibFoto" accept="image/*"></div>
+                    <input type="file" id="bibFoto" accept="image/*" multiple>
+                    <p class="ayuda" style="margin:4px 0 0">Puedes elegir <b>varias imágenes a la vez</b>:
+                        se crea un equipo por imagen (con el nombre del archivo o el nombre + número).</p>
+                </div>
                 <label class="chk"><input type="checkbox" id="bibRecorte" checked>
                     Recortar el fondo (recomendado con fondo liso)</label>
                 <button id="btnBibNuevo" class="btn-primario">Guardar en la biblioteca</button>
@@ -281,7 +286,7 @@
             <input type="file" id="fileImportar" accept="application/json,.json" hidden>
             <button id="btnBorrarTodo" class="btn-borrar">Borrar todo el plano</button>
             <button id="btnAyuda" class="btn-sec">❔ Guía rápida</button>
-            <p class="pie">v1.4.1 · Funciona sin conexión · Los datos quedan en tu dispositivo.</p>
+            <p class="pie">v1.4.2 · Funciona sin conexión · Los datos quedan en tu dispositivo.</p>
         </section>
 
         <!-- ===================== FORMULARIO COMPARTIDO ===================== -->
@@ -424,6 +429,8 @@
         </div>
     </aside>
 
+    <div id="panelBackdrop"></div>
+
     <main id="workspace">
         <div id="zoom-controls">
             <button id="btnMenos" title="Alejar">−</button>
@@ -440,17 +447,18 @@
         <div id="leyenda"></div>
     </main>
 
-    <div id="vivo3d" aria-label="Vista 3D en vivo">
+    <div id="vivo3d" class="pos-br" aria-label="Vista 3D en vivo">
         <div class="vivo-cab">
             <span>🧊 3D en vivo</span>
             <div class="vivo-acciones">
                 <button id="btnVivoCompartir" type="button" title="Compartir esta vista por WhatsApp">📤</button>
+                <button id="btnVivoReset" type="button" title="Centrar la vista">⟲</button>
                 <button id="btnVivoAbrir" type="button" title="Ver en pantalla completa">⤢</button>
                 <button id="btnVivoCerrar" type="button" title="Cerrar">✕</button>
             </div>
         </div>
-        <div id="vivoLienzo" title="Arrastra para girar"></div>
-        <div id="vivoInfo" class="vivo-pie">Arrastra para girar</div>
+        <div id="vivoLienzo" title="Arrastra para girar · pellizca para acercar"></div>
+        <div id="vivoInfo" class="vivo-pie">Arrastra para girar · pellizca para acercar</div>
     </div>
 
     <div id="vista3d" role="dialog" aria-modal="true" aria-label="Vista 3D">

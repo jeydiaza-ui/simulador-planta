@@ -2,7 +2,7 @@
    Simulador de Planta CTC Energy · Service Worker
    Permite instalar la app y trabajar sin conexión.
    ============================================================ */
-const CACHE = 'ctc-planta-v1.4.1';
+const CACHE = 'ctc-planta-v1.4.2';
 const CORE = [
   './',
   './index.html',
