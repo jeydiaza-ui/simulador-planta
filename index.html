@@ -40,6 +40,9 @@
             <button type="button" class="marca" data-tab="salida">5 · Guardar</button>
         </div>
 
+        <p class="pista-3d">🧊 <b>3D en vivo:</b> el botón de arriba a la derecha del plano muestra el avance en 3D
+            mientras agregas elementos. Arrástralo para girar.</p>
+
         <!-- ===================== ELEMENTO SELECCIONADO ===================== -->
         <div id="selBox" style="display:none">
             <h3 class="sub">✏️ Elemento seleccionado</h3>
@@ -236,7 +239,7 @@
             <button id="btnNuevo" class="btn-sec">🗋 Proyecto nuevo</button>
 
             <hr>
-            <button id="btn3D" class="btn-3d">🧊 Ver en 3D</button>
+            <button id="btn3D" class="btn-3d">🧊 Ver en 3D (pantalla completa)</button>
             <div class="fila-campos">
                 <button id="btnCompartir3D" class="btn-wa">📤 Compartir 3D</button>
                 <button id="btnPng3D" class="btn-sec">⬇ PNG 3D</button>
@@ -278,7 +281,7 @@
             <input type="file" id="fileImportar" accept="application/json,.json" hidden>
             <button id="btnBorrarTodo" class="btn-borrar">Borrar todo el plano</button>
             <button id="btnAyuda" class="btn-sec">❔ Guía rápida</button>
-            <p class="pie">v1.4 · Funciona sin conexión · Los datos quedan en tu dispositivo.</p>
+            <p class="pie">v1.4.1 · Funciona sin conexión · Los datos quedan en tu dispositivo.</p>
         </section>
 
         <!-- ===================== FORMULARIO COMPARTIDO ===================== -->
@@ -427,6 +430,8 @@
             <span id="txtZoom">100%</span>
             <button id="btnMas" title="Acercar">+</button>
         </div>
+        <button id="btnVivo3D" class="btn-vivo3d" type="button"
+            title="Mostrar u ocultar la vista 3D mientras editas">🧊 3D en vivo</button>
         <div id="wrapper">
             <div id="regla-x" aria-hidden="true"></div>
             <div id="regla-y" aria-hidden="true"></div>
@@ -434,6 +439,19 @@
         </div>
         <div id="leyenda"></div>
     </main>
+
+    <div id="vivo3d" aria-label="Vista 3D en vivo">
+        <div class="vivo-cab">
+            <span>🧊 3D en vivo</span>
+            <div class="vivo-acciones">
+                <button id="btnVivoCompartir" type="button" title="Compartir esta vista por WhatsApp">📤</button>
+                <button id="btnVivoAbrir" type="button" title="Ver en pantalla completa">⤢</button>
+                <button id="btnVivoCerrar" type="button" title="Cerrar">✕</button>
+            </div>
+        </div>
+        <div id="vivoLienzo" title="Arrastra para girar"></div>
+        <div id="vivoInfo" class="vivo-pie">Arrastra para girar</div>
+    </div>
 
     <div id="vista3d" role="dialog" aria-modal="true" aria-label="Vista 3D">
         <div id="barra3d">

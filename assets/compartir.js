@@ -9,11 +9,13 @@
     const SIN = Math.sin(Math.PI / 6);
     const W = 1600, H = 1000;
 
+    const IMG_CACHE = new Map();
     function cargarImagen(src) {
+        if (!src) return Promise.resolve(null);
+        if (IMG_CACHE.has(src)) return Promise.resolve(IMG_CACHE.get(src));
         return new Promise(res => {
-            if (!src) return res(null);
             const im = new Image();
-            im.onload = () => res(im);
+            im.onload = () => { IMG_CACHE.set(src, im); res(im); };
             im.onerror = () => res(null);
             im.src = src;
         });
@@ -48,8 +50,11 @@
         return ctx.measureText(txt).width;
     }
 
-    async function render(doc) {
+    async function render(doc, opts) {
         doc = doc || {};
+        opts = opts || {};
+        const giro = Number(opts.giro) || 0;
+        const compacto = !!opts.compacto;
         const cv = document.createElement('canvas');
         cv.width = W; cv.height = H;
         const ctx = cv.getContext('2d');
@@ -64,8 +69,17 @@
         const imgs = {};
         await Promise.all(usadas.map(async id => { imgs[id] = await cargarImagen(fotos[id]); }));
 
-        /* ---------- proyección ---------- */
-        const bruto = (x, y, z) => ({ x: (x - z) * COS, y: (x + z) * SIN - y });
+        /* ---------- proyección (con giro alrededor del centro) ---------- */
+        const cx0 = bw / 2, cz0 = bd / 2;
+        const cosG = Math.cos(giro), sinG = Math.sin(giro);
+        const girar = (x, z) => {
+            const dx = x - cx0, dz = z - cz0;
+            return [cx0 + dx * cosG - dz * sinG, cz0 + dx * sinG + dz * cosG];
+        };
+        const bruto = (x, y, z) => {
+            const g = girar(x, z);
+            return { x: (g[0] - g[1]) * COS, y: (g[0] + g[1]) * SIN - y };
+        };
         let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
         const ver = (x, y, z) => {
             const p = bruto(x, y, z);
@@ -84,7 +98,9 @@
         });
         if (!isFinite(minX)) { minX = -10; maxX = 10; minY = -10; maxY = 10; }
 
-        const margenX = 70, margenSup = 105, margenInf = 80;
+        const margenX = compacto ? 26 : 70;
+        const margenSup = compacto ? 26 : 105;
+        const margenInf = compacto ? 26 : 80;
         const escala = Math.min((W - margenX * 2) / Math.max(1, maxX - minX),
                                 (H - margenSup - margenInf) / Math.max(1, maxY - minY));
         const offX = (W - (maxX - minX) * escala) / 2 - minX * escala;
@@ -305,7 +321,12 @@
             texto(ctx, txt, p.x, p.y - 14, clampSize(Number(ed.a) * escala * 0.6, 20), '#1B4F72', 'center');
         });
 
+        if (compacto && !bloques.length) {
+            texto(ctx, 'Agrega elementos para verlos en 3D', W / 2, H / 2, 52, '#7F8C8D', 'center', false);
+        }
+
         /* ---------- encabezado ---------- */
+        if (!compacto) {
         ctx.fillStyle = '#1B2A3A';
         ctx.fillRect(0, 0, W, 8);
         ctx.fillStyle = '#FFC300';
@@ -329,6 +350,7 @@
         texto(ctx, 'Simulador de Planta CTC Energy · ' + equipos.length + ' equipos · ' +
                    eds.length + ' edificaciones · ' + muros.length + ' muros',
               W - 60, yBase, 15, '#7F8C8D', 'right', false);
+        }
 
         return cv;
     }

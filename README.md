@@ -6,7 +6,7 @@ Funciona sin conexión, se instala en el celular o en el PC y **guarda el trabaj
 
 ![Vista 3D del taller](docs/v14-3d.png)
 
-> Versión **1.4** · Un solo HTML + CSS + JS, **sin dependencias** · Publicada en
+> Versión **1.4.1** · Un solo HTML + CSS + JS, **sin dependencias** · Publicada en
 > [GitHub Pages](https://jeydiaza-ui.github.io/simulador-planta/).
 
 ## ⬇️ Descargar
@@ -19,6 +19,9 @@ Funciona sin conexión, se instala en el celular o en el PC y **guarda el trabaj
 
 ## 🚀 Lo nuevo en la versión 1.4
 
+- **3D en vivo**: un panel flotante muestra el taller en 3D y se actualiza solo cada vez que
+  agregas o mueves algo. Se abre con el botón **🧊 3D en vivo** (arriba a la derecha del plano)
+  y se gira arrastrando. En el PC aparece abierto al entrar; en el celular se abre con un toque.
 - **Trabajo por etapas**: 1 Taller · 2 Edificaciones · 3 Equipos · 4 Marcación · 5 Guardar.
 - **Guardado automático real** en el dispositivo (IndexedDB, con las fotos incluidas).
   Botones para **guardar un archivo** y **abrirlo en otro celular o PC**.
@@ -57,6 +60,13 @@ Funciona sin conexión, se instala en el celular o en el PC y **guarda el trabaj
 | **3 · Equipos** | Arrastras de la biblioteca al plano o creas tu equipo con foto y medidas (ancho × fondo × alto). |
 | **4 · Marcación** | Eliges color, ancho y forma de la franja; o creas un **marco estirable** y lo ajustas con los tiradores. |
 | **5 · Guardar** | Pones el nombre del proyecto, guardas, envías el **3D por WhatsApp** o imprimes el **PDF**. |
+
+### Así se ve el 3D en vivo mientras trabajas
+
+![3D en vivo](docs/v14-3d-vivo.png)
+
+El panel se actualiza solo con cada cambio: equipos, muros, edificaciones y marcos.
+Arrástralo para girar; con **⤢** lo abres en pantalla completa y con **📤** lo compartes.
 
 ### Capturas
 

@@ -10,7 +10,7 @@
         font-family: 'Segoe UI', Tahoma, sans-serif; color: #1B2A3A;
         margin: 0; font-size: 11pt; line-height: 1.45;
     }
-    .page { page-break-after: always; display: flex; flex-direction: column; min-height: 258mm; }
+    .page { page-break-after: always; display: flex; flex-direction: column; min-height: 250mm; }
     .page:last-child { page-break-after: auto; }
     .brand { display: flex; align-items: center; gap: 10px; margin-bottom: 6mm; }
     .brand img { width: 16mm; height: 16mm; border-radius: 4mm; }
@@ -23,7 +23,7 @@
     .hero img { width: 100%; max-height: 118mm; object-fit: contain; border: 1px solid #cfd8dc; border-radius: 3mm; }
     .foot { margin-top: auto; font-size: 8pt; color: #7F8C8D;
             border-top: 1px solid #ddd; padding-top: 2mm; display: flex; justify-content: space-between; }
-    .shot { height: auto; max-height: 61mm; width: auto; max-width: 100%; display: block; margin: 2mm auto 3mm; border: 1px solid #cfd8dc; border-radius: 2mm; }
+    .shot { height: auto; max-height: 54mm; width: auto; max-width: 100%; display: block; margin: 2mm auto 3mm; border: 1px solid #cfd8dc; border-radius: 2mm; }
     .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 5mm; }
     .card { background: #F4F7FA; border: 1px solid #DDE3E9; border-radius: 2mm; padding: 3mm; }
     .card h3 { margin-top: 0; }
@@ -52,7 +52,7 @@
     <h1>Simulador de Planta</h1>
     <p class="sub">Guía rápida para dibujar el taller por etapas, guardar el trabajo,
         compartirlo en 3D por WhatsApp e imprimir el plano en PDF.</p>
-    <p><span class="tag">Versión 1.4</span> &nbsp; <span class="tiny">Octubre de 2026 · 5 etapas · 44 pruebas automáticas</span></p>
+    <p><span class="tag">Versión 1.4.1</span> &nbsp; <span class="tiny">Octubre de 2026 · 5 etapas · 3D en vivo · 44 pruebas automáticas</span></p>
     <div class="hero"><img src="v14-3d.png" alt="Vista 3D del taller"></div>
     <div class="foot"><span>Simulador de Planta CTC Energy · Guía rápida</span><span>1</span></div>
 </div>
@@ -87,6 +87,7 @@
         <tr><td>Borrar</td><td>Botón <b>×</b> del elemento o <b>Eliminar</b> en la ficha.</td></tr>
         <tr><td>Deshacer</td><td><span class="kbd">Ctrl</span> + <span class="kbd">Z</span> o el botón <b>↩️</b>.</td></tr>
         <tr><td>Hacer zoom</td><td>Botones <b>−</b> / <b>+</b> abajo a la derecha.</td></tr>
+        <tr><td>Ver el avance en 3D</td><td>Botón <b>🧊 3D en vivo</b> (arriba a la derecha del plano). Arrastra el panel para girar.</td></tr>
     </table>
     <div class="foot"><span>Antes de empezar</span><span>2</span></div>
 </div>
@@ -123,6 +124,8 @@
             ancho, fondo y alto, y elige una <b>foto o render</b>. Queda guardado en tu biblioteca.</li>
         <li>Si elegiste una edificación en <b>Trabajar dentro de</b>, el equipo se coloca dentro de ella.</li>
         <li>Puedes ajustar medidas, color, stand, estante y foto en la ficha del elemento.</li>
+        <li>El panel <b>3D en vivo</b> se actualiza solo con cada equipo que agregas; con <b>⤢</b>
+            lo ves en pantalla completa y con <b>📤</b> lo compartes.</li>
     </ul>
     <img class="shot" src="v14-equipos.png" alt="Etapa 3">
 

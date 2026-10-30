@@ -50,6 +50,7 @@ let cam = { rx: -55, ry: -25, z: 1 };
 let mundoW = 0, mundoF = 0;
 let sprites = [];
 let imagenCache = null;
+let vivo3dAbierto = false, vivoGiro = 0, vivoToken = 0, vivoTimer = null, vivoDrag = null;
 let fotoPendiente = null;
 let bibExtra = [], bibOcultos = [];
 
@@ -83,6 +84,7 @@ function guardarHistorial() {
   histIdx = historial.length - 1;
   if (historial.length > MAX_HIST) { historial.shift(); histIdx--; }
   guardarLocal();
+  programarVivo3D();
 }
 
 function deshacer() {
@@ -548,6 +550,7 @@ function render() {
   }
   actualizarTotales();
   dibujarRecintos();
+  programarVivo3D();
 }
 
 function crearElBloque(b) {
@@ -1995,6 +1998,54 @@ async function compartir3D(soloDescargar) {
     aviso('Imagen guardada. Adjúntala en WhatsApp', 'ok');
 }
 
+/* ============================================================
+   VISTA 3D EN VIVO (mientras se edita)
+   ============================================================ */
+function alternarVivo3D(forzar, recordar) {
+    const panel = $('vivo3d');
+    if (!panel) return;
+    vivo3dAbierto = typeof forzar === 'boolean' ? forzar : !vivo3dAbierto;
+    if (recordar !== false && !MODO_TEST) {
+        try { localStorage.setItem('ctc_vivo3d', vivo3dAbierto ? '1' : '0'); } catch (_) { }
+    }
+    panel.classList.toggle('activa', vivo3dAbierto);
+    const btn = $('btnVivo3D');
+    if (btn) {
+        btn.classList.toggle('activo', vivo3dAbierto);
+        btn.setAttribute('aria-pressed', vivo3dAbierto ? 'true' : 'false');
+    }
+    if (vivo3dAbierto) actualizarVivo3D();
+}
+
+function programarVivo3D() {
+    if (!vivo3dAbierto) return;
+    clearTimeout(vivoTimer);
+    vivoTimer = setTimeout(() => actualizarVivo3D(), 180);
+}
+
+async function actualizarVivo3D() {
+    if (!vivo3dAbierto || !window.CTC3D) return;
+    const token = ++vivoToken;
+    let cv = null;
+    try {
+        cv = await window.CTC3D.render(instantanea(), { giro: vivoGiro, compacto: true });
+    } catch (_) { return; }
+    if (!cv || token !== vivoToken || !vivo3dAbierto) return;
+    const host = $('vivoLienzo');
+    if (!host) return;
+    host.innerHTML = '';
+    cv.className = 'vivo-canvas';
+    host.appendChild(cv);
+    const eq = estado.bloques.filter(b => b.cat === 'objeto').length;
+    const mu = estado.bloques.filter(b => b.cat === 'muro').length;
+    const ed = estado.bloques.filter(b => b.cat === 'edificacion').length;
+    const info = $('vivoInfo');
+    const plural = (n, s, p) => n + ' ' + (n === 1 ? s : p);
+    if (info) info.textContent = plural(eq, 'equipo', 'equipos') + ' · ' +
+        plural(mu, 'muro', 'muros') + ' · ' + plural(ed, 'edificación', 'edificaciones');
+}
+
+
 // coloca un bloque en una posición (o en el hueco libre más cercano)
 function ubicarEn(b, px, py) {
   const bod = $('bodega');
@@ -2712,6 +2763,10 @@ async function iniciar() {
   /* ---------- 3D / PDF ---------- */
   on('btn3D', 'click', abrir3D);
   on('btnCerrar3D', 'click', cerrar3D);
+  on('btnVivo3D', 'click', () => alternarVivo3D());
+  on('btnVivoCerrar', 'click', () => alternarVivo3D(false));
+  on('btnVivoAbrir', 'click', abrir3D);
+  on('btnVivoCompartir', 'click', () => compartir3D(false));
   on('btnImprimir', 'click', imprimir);
   on('btnCompartir3D', 'click', () => compartir3D(false));
   on('btnPng3D', 'click', () => compartir3D(true));
@@ -2760,6 +2815,24 @@ async function iniciar() {
     aplicarCamara();
   }, { passive: false });
 
+  /* ---------- 3D en vivo: girar con el dedo ---------- */
+  const vl = $('vivoLienzo');
+  if (vl) {
+    vl.addEventListener('pointerdown', e => {
+      if (e.button !== undefined && e.button !== 0) return;
+      vivoDrag = { x: e.clientX, giro: vivoGiro };
+      try { vl.setPointerCapture(e.pointerId); } catch (_) { }
+    });
+    vl.addEventListener('pointermove', e => {
+      if (!vivoDrag) return;
+      vivoGiro = vivoDrag.giro + (e.clientX - vivoDrag.x) * 0.008;
+      programarVivo3D();
+    });
+    ['pointerup', 'pointercancel'].forEach(ev =>
+      vl.addEventListener(ev, () => { vivoDrag = null; }));
+    vl.addEventListener('dblclick', abrir3D);
+  }
+
   /* ---------- guardado al salir / cambiar de app ---------- */
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden' && !MODO_TEST) guardarProyecto(false);
@@ -2802,6 +2875,12 @@ async function iniciar() {
   cambiarTab('taller');
   refrescarFotosPared();
   refrescarPaneles();
+  if (!MODO_TEST) {
+    let pref = null;
+    try { pref = localStorage.getItem('ctc_vivo3d'); } catch (_) { }
+    const abrirVivo = pref !== null ? pref === '1' : window.innerWidth >= 1100;
+    if (abrirVivo) alternarVivo3D(true, false);
+  }
 
   const q = new URLSearchParams(location.search);
   if (q.has('selftest')) correrTest();
