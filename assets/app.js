@@ -1447,22 +1447,47 @@ function abrir3D() {
       mundo.appendChild(cara(w, d, 'translate3d(' + l + 'px, ' + (-h) + 'px, ' + t + 'px) rotateX(90deg)',
         Object.assign({}, base, { transformOrigin: '0 0' }), etiqueta));
     }
-    // las edificaciones sin techo muestran dos paredes bajas para poder ver el interior
+    // edificaciones sin techo: las 4 paredes quedan bajas para ver el interior desde cualquier ángulo
     const esEdif = b.cat === 'edificacion';
-    const hBaja = (esEdif && !verTechos) ? Math.min(h, 10) : h;
+    const bajoEdif = esEdif && !verTechos;
+    const hBaja = bajoEdif ? Math.min(h, 15) : h;
     if (esEdif) {
       mundo.appendChild(cara(w, d, 'translate3d(' + l + 'px, -1px, ' + t + 'px) rotateX(90deg)', {
         transformOrigin: '0 0', background: 'rgba(52,152,219,.14)', outline: 'none'
       }));
     }
-    mundo.appendChild(caraMuro(w, hBaja, 'translate3d(' + l + 'px, ' + (-hBaja) + 'px, ' + (t + d) + 'px)',
-      lado(1), b.color, esEdif && !verTechos ? [] : huecosDe(b.id, 'abajo', h, false, b.a), esEdif && !verTechos ? '' : abHTML(b.id, 'abajo', b.a, h, false)));
-    mundo.appendChild(caraMuro(w, h, 'translate3d(' + l + 'px, ' + (-h) + 'px, ' + t + 'px) rotateY(180deg)',
-      lado(0.7), b.color, huecosDe(b.id, 'arriba', h, true, b.a), abHTML(b.id, 'arriba', b.a, h, true)));
-    mundo.appendChild(caraMuro(d, h, 'translate3d(' + (l - d / 2) + 'px, ' + (-h) + 'px, ' + (t + d / 2) + 'px) rotateY(-90deg)',
-      lado(0.85), b.color, huecosDe(b.id, 'izq', h, false, b.f), abHTML(b.id, 'izq', b.f, h, false)));
-    mundo.appendChild(caraMuro(d, hBaja, 'translate3d(' + (l + w - d / 2) + 'px, ' + (-hBaja) + 'px, ' + (t + d / 2) + 'px) rotateY(90deg)',
-      lado(0.65), b.color, esEdif && !verTechos ? [] : huecosDe(b.id, 'der', h, true, b.f), esEdif && !verTechos ? '' : abHTML(b.id, 'der', b.f, h, true)));
+    const hW = bajoEdif ? hBaja : h;
+    const sinHuecos = bajoEdif;
+    mundo.appendChild(caraMuro(w, hW, 'translate3d(' + l + 'px, ' + (-hW) + 'px, ' + (t + d) + 'px)',
+      lado(1), b.color, sinHuecos ? [] : huecosDe(b.id, 'abajo', h, false, b.a), sinHuecos ? '' : abHTML(b.id, 'abajo', b.a, h, false)));
+    mundo.appendChild(caraMuro(w, hW, 'translate3d(' + l + 'px, ' + (-hW) + 'px, ' + t + 'px) rotateY(180deg)',
+      lado(0.7), b.color, sinHuecos ? [] : huecosDe(b.id, 'arriba', h, true, b.a), sinHuecos ? '' : abHTML(b.id, 'arriba', b.a, h, true)));
+    mundo.appendChild(caraMuro(d, hW, 'translate3d(' + (l - d / 2) + 'px, ' + (-hW) + 'px, ' + (t + d / 2) + 'px) rotateY(-90deg)',
+      lado(0.85), b.color, sinHuecos ? [] : huecosDe(b.id, 'izq', h, false, b.f), sinHuecos ? '' : abHTML(b.id, 'izq', b.f, h, false)));
+    mundo.appendChild(caraMuro(d, hW, 'translate3d(' + (l + w - d / 2) + 'px, ' + (-hW) + 'px, ' + (t + d / 2) + 'px) rotateY(90deg)',
+      lado(0.65), b.color, sinHuecos ? [] : huecosDe(b.id, 'der', h, true, b.f), sinHuecos ? '' : abHTML(b.id, 'der', b.f, h, true)));
+
+    // puertas y ventanas visibles aunque la pared esté baja (hoja/marco en 3D)
+    if (bajoEdif) {
+      estado.aberturas.filter(a => a.dueno === b.id).forEach(a => {
+        const anchoPx = Math.max(4, num(a.ancho, 1) * ESCALA);
+        const altoPx = Math.max(4, num(a.alto, 2) * ESCALA);
+        // la puerta arranca en el piso; la ventana se dibuja pegada al borde de la pared baja
+        const y0 = a.tipo === 'ventana'
+          ? hBaja
+          : Math.max(0, num(a.desde, 0) * ESCALA);
+        const altoPanel = a.tipo === 'ventana'
+          ? Math.max(6, (num(a.desde, 0) * ESCALA + altoPx) - hBaja)
+          : altoPx;
+        const pos = Math.max(0, num(a.pos, 0) * ESCALA);
+        const col = a.tipo === 'puerta' ? 'rgba(139,69,19,.72)'
+          : a.tipo === 'ventana' ? 'rgba(93,173,226,.58)' : 'rgba(44,62,80,.42)';
+        if (a.pared === 'abajo') caja3D(mundo, l + pos, t + d - 1.5, anchoPx, 3, y0, altoPanel, col);
+        else if (a.pared === 'arriba') caja3D(mundo, l + pos, t - 1.5, anchoPx, 3, y0, altoPanel, col);
+        else if (a.pared === 'izq') caja3D(mundo, l - 1.5, t + pos, 3, anchoPx, y0, altoPanel, col);
+        else caja3D(mundo, l + w - 1.5, t + pos, 3, anchoPx, y0, altoPanel, col);
+      });
+    }
   });
 
   const diag = Math.sqrt(mundoW * mundoW + mundoF * mundoF) || 1;
