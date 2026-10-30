@@ -534,13 +534,17 @@ function rotarBloque(id) {
   const a = b.a, f = b.f;
   const wpx = f * ESCALA, hpx = a * ESCALA;
   const dom = document.getElementById('bodega');
-  const fantasma = { dataset: { categoria: b.cat } };
-  if (b.x + wpx > dom.clientWidth + 0.5 || b.y + hpx > dom.clientHeight + 0.5 ||
-      colisiona(fantasma, b.x, b.y, wpx, hpx)) {
-    error('No se puede rotar: choca o se sale de la bodega'); return;
-  }
+  const wDom = dom.querySelector('.bloque-wrapper[data-id="' + b.id + '"]');
+  const el = wDom || { dataset: { categoria: b.cat } };
+  const choca = colisiona(el, b.x, b.y, wpx, hpx);
+  const seSale = b.x + wpx > dom.clientWidth + 0.5 || b.y + hpx > dom.clientHeight + 0.5;
+  // gira siempre; solo se acomoda para que no quede fuera del lienzo
   b.a = f; b.f = a; b.rot = !b.rot;
+  b.x = Math.max(0, Math.min(b.x, Math.max(0, dom.clientWidth - b.a * ESCALA)));
+  b.y = Math.max(0, Math.min(b.y, Math.max(0, dom.clientHeight - b.f * ESCALA)));
   render(); guardarHistorial();
+  if (choca || seSale) aviso('Girado 90°. Quedó encimado o al borde: revisa que quepa.');
+  else ok('Girado 90°');
 }
 
 /* ============================================================
@@ -856,17 +860,13 @@ function iniciarArrastreBloque(e, id) {
     w.classList.remove('arrastrando');
     if (!movido) { w.style.left = x0 + 'px'; w.style.top = y0 + 'px'; seleccionar(id); return; }
     const libre = buscarLibre(w, wpx, hpx, nx, ny);
-    if (!libre) {
-      w.style.left = x0 + 'px'; w.style.top = y0 + 'px';
-      error('No hay espacio libre ahí');
-      return;
-    }
-    b.x = libre.x; b.y = libre.y;
+    const destino = libre || { x: nx, y: ny };
+    const dx = destino.x - x0, dy = destino.y - y0;
+    b.x = destino.x; b.y = destino.y;
     if (b.cat === 'muro') {
       const edM = estado.bloques.find(x => x.cat === 'edificacion' && dentroDe(b, x));
       if (edM) ajustarMuroAEdificacion(b, edM);
     }
-    const dx = b.x - x0, dy = b.y - y0;
     if (hijos.length && (dx || dy)) {
       b.x = x0; b.y = y0;
       moverConContenido(b, dx, dy);
@@ -874,6 +874,7 @@ function iniciarArrastreBloque(e, id) {
     } else {
       w.style.left = b.x + 'px'; w.style.top = b.y + 'px';
     }
+    if (!libre) error('No había espacio libre: quedó encimado. Puedes activar «Mover libre».');
     marcarPosicion(b);
     guardarHistorial();
     refrescarPaneles();
@@ -3210,12 +3211,13 @@ function aplicarSeleccion() {
   }
   const hijos = b.cat === 'edificacion' ? hijosContenidos(b) : [];
   const wpx = na * ESCALA, hpx = nf * ESCALA;
-  const otro = { dataset: { categoria: b.cat } };
+  const selector = '.bloque-wrapper[data-id="' + b.id + '"]';
+  const otro = document.querySelector(selector) || { dataset: { categoria: b.cat } };
   const choca = colisiona(otro, b.x, b.y, wpx, hpx);
   if (choca) {
     const libre = buscarLibre(otro, wpx, hpx, b.x, b.y);
-    if (!libre) { error('Con ese tamaño no cabe: choca con otro elemento'); return; }
-    b.x = libre.x; b.y = libre.y;
+    if (libre) { b.x = libre.x; b.y = libre.y; }
+    else aviso('El nuevo tamaño queda encimado; se aplicó igual.');
   }
   b.nombre = ($('selNombre').value || '').trim() || b.nombre;
   b.a = na; b.f = nf; b.h = nh;
