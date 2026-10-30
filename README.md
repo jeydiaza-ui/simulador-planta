@@ -6,7 +6,7 @@ Funciona sin conexión, se instala en el celular o en el PC y **guarda el trabaj
 
 ![Vista 3D del taller](docs/v14-3d.png)
 
-> Versión **1.4.7** · Un solo HTML + CSS + JS, **sin dependencias** · Publicada en
+> Versión **1.4.8** · Un solo HTML + CSS + JS, **sin dependencias** · Publicada en
 > [GitHub Pages](https://jeydiaza-ui.github.io/simulador-planta/).
 
 ## ⬇️ Descargar
@@ -43,8 +43,9 @@ Funciona sin conexión, se instala en el celular o en el PC y **guarda el trabaj
   ![Plano limpio](docs/v14-limpio.png)
 - **Girar y mover siempre**: el botón **↻** gira el elemento aunque no quepa (avisa si queda encimado);
   al arrastrar, si no hay hueco libre se queda donde lo soltaste en vez de devolverse.
-- **Equipos pequeños sin estorbo**: los botones de girar/borrar ahora van fuera del bloque y, en
-  equipos muy pequeños, se ocultan; se usan los botones **↻ Girar 90°** y **Eliminar** de la ficha.
+- **Equipos pequeños sin estorbo**: los botones de girar/borrar van fuera del bloque y aparecen al
+  seleccionarlo; para equipos muy pequeños también están **↻ Girar 90°** y **Eliminar** en la ficha.
+  Los equipos dentro de una edificación se pueden seleccionar aunque la edificación esté seleccionada.
 - **Cerrar un muro**: si un muro no llega a las paredes, selecciónalo y pulsa
   **↔ Cerrar muro hasta las paredes**; el área se parte y aparecen los dos recintos.
 - **Imagen 3D con frente translúcido o paredes completas**: por defecto el PNG sale con el frente

@@ -612,8 +612,12 @@ body.sin-nombres .recinto-lbl, body.sin-nombres .marco-lbl { display: none; }
 .bloque-wrapper.sel > .btn-del,
 .bloque-wrapper.sel > .btn-rot { opacity: 1; }
 .bloque-wrapper.mini > .btn-del,
-.bloque-wrapper.mini > .btn-rot { display: none; }
-.bloque-wrapper.sel { z-index: 9998 !important; }
+.bloque-wrapper.mini > .btn-rot {
+    display: flex; width: 16px; height: 16px; font-size: 10px; top: -18px;
+}
+.bloque-wrapper.mini > .btn-del { right: 0; }
+.bloque-wrapper.mini > .btn-rot { left: 0; }
+/* la selección no cambia el orden: los equipos deben quedar clicables */
 
 /* ============================================================
    v1.4.7 · etiquetas del plano (todas / solo áreas / limpio)

@@ -556,6 +556,7 @@ function render() {
   const bod = $('bodega');
   if (!bod) return;
   imagenCache = null;
+  zTop = 1;
   bod.querySelectorAll('.bloque-wrapper').forEach(e => e.remove());
   estado.bloques.forEach(b => bod.appendChild(crearElBloque(b)));
   // si un equipo tiene marco, su rótulo interno no se muestra (lo muestra el marco)
@@ -589,7 +590,9 @@ function crearElBloque(b) {
   if (b.a * ESCALA < 42 || b.f * ESCALA < 30) w.classList.add('mini');
   w.style.left = b.x + 'px';
   w.style.top = b.y + 'px';
-  w.style.zIndex = b.cat === 'libre' ? 0 : (++zTop);
+  // las edificaciones van debajo: así los equipos que están dentro se pueden seleccionar
+  const zBase = b.cat === 'libre' ? 0 : (b.cat === 'edificacion' ? 10 : 1000);
+  w.style.zIndex = zBase + (++zTop);
   w.style.setProperty('--fm', Math.max(3, Math.round((b.marca || 0) / 100 * ESCALA)) + 'px');
   w.addEventListener('pointerdown', e => iniciarArrastreBloque(e, b.id));
 
