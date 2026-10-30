@@ -1585,6 +1585,32 @@ function cerrar3D() { $('vista3d').classList.remove('activa'); }
    PERSISTENCIA
    ============================================================ */
 /* ---------- extras del taller (techo, paredes, cubierta) ---------- */
+let modoEtiquetas = 'todas';
+
+function aplicarEtiquetas(modo, guardar) {
+    const validos = ['todas', 'areas', 'ninguna'];
+    modoEtiquetas = validos.indexOf(modo) >= 0 ? modo : 'todas';
+    document.body.classList.remove('etiquetas-todas', 'etiquetas-areas', 'etiquetas-ninguna', 'sin-nombres');
+    document.body.classList.add('etiquetas-' + modoEtiquetas);
+    if (modoEtiquetas === 'ninguna') document.body.classList.add('sin-nombres');
+    const btn = $('btnEtiquetas');
+    if (btn) {
+        btn.textContent = modoEtiquetas === 'todas' ? '🏷️ Todas'
+            : modoEtiquetas === 'areas' ? '🏷️ Áreas' : '🏷️ Limpio';
+        btn.classList.toggle('areas', modoEtiquetas === 'areas');
+        btn.classList.toggle('limpio', modoEtiquetas === 'ninguna');
+        btn.title = modoEtiquetas === 'todas'
+            ? 'Etiquetas: nombres y áreas. Clic para ver solo áreas.'
+            : modoEtiquetas === 'areas'
+                ? 'Etiquetas: solo áreas. Clic para dejar el plano limpio.'
+                : 'Plano limpio sin etiquetas. Clic para mostrar todo.';
+    }
+    if ($('verNombres')) $('verNombres').checked = modoEtiquetas === 'todas';
+    if (guardar) {
+        try { localStorage.setItem('ctc_etiquetas', modoEtiquetas); } catch (_) { }
+    }
+}
+
 function sincronizarExtras() {
     const ap = $('altoPared'), cu = $('cubierta'), ac = $('alturaCumbrera'), cp = $('colorPared');
     if (ap) estado.altoPared = Math.max(1, num(ap.value, 4));
@@ -2279,7 +2305,13 @@ function dibujarRecintos() {
             const d = document.createElement('div');
             d.className = 'recinto-lbl';
             const nombre = nombreRecinto(r);
-            d.textContent = nombre + ' · ' + r.m2.toFixed(2) + ' m²';
+            const sn = document.createElement('span');
+            sn.className = 'recinto-nombre';
+            sn.textContent = nombre;
+            const sa = document.createElement('span');
+            sa.className = 'recinto-area';
+            sa.textContent = r.m2.toFixed(2) + ' m²';
+            d.append(sn, sa);
             const left = limitar(r.cx, r.x + 3, r.x + r.w - 3);
             const top = limitar(r.cy, r.y + 3, r.y + r.h - 3);
             d.style.left = left + 'px';
@@ -2815,7 +2847,11 @@ async function iniciar() {
   on('btnAgregarAb', 'click', agregarAbertura);
   on('pasoMover', 'change', e => { SNAP = parseFloat(e.target.value) || 2; });
   on('espesorMuro', 'change', e => { $('fondoBloque').value = e.target.value; });
-  on('verNombres', 'change', e => document.body.classList.toggle('sin-nombres', !e.target.checked));
+  on('verNombres', 'change', e => aplicarEtiquetas(e.target.checked ? 'todas' : 'ninguna', true));
+  on('btnEtiquetas', 'click', () => {
+    const orden = ['todas', 'areas', 'ninguna'];
+    aplicarEtiquetas(orden[(orden.indexOf(modoEtiquetas) + 1) % orden.length], true);
+  });
 
   /* ---------- módulos ---------- */
   $('categoriaBloque').addEventListener('change', () => cambiarCategoria(true));
@@ -3131,6 +3167,9 @@ async function iniciar() {
   /* ---------- arranque ---------- */
   elegirTipo('objeto');
   SNAP = parseFloat($('pasoMover').value) || 2;
+  let modoEt = 'todas';
+  try { modoEt = localStorage.getItem('ctc_etiquetas') || 'todas'; } catch (_) { }
+  aplicarEtiquetas(modoEt, false);
 
   await (MODO_TEST ? Promise.resolve(cargarBibLocal()) : cargarBiblioteca());
   if (typeof pintarBiblioteca === 'function') pintarBiblioteca();

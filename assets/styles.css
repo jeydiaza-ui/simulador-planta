@@ -614,3 +614,40 @@ body.sin-nombres .recinto-lbl, body.sin-nombres .marco-lbl { display: none; }
 .bloque-wrapper.mini > .btn-del,
 .bloque-wrapper.mini > .btn-rot { display: none; }
 .bloque-wrapper.sel { z-index: 9998 !important; }
+
+/* ============================================================
+   v1.4.7 · etiquetas del plano (todas / solo áreas / limpio)
+   ============================================================ */
+#barraVista {
+    position: absolute; top: 16px; right: 18px; z-index: 110;
+    display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end;
+}
+#barraVista .btn-vivo3d { position: static; }
+.btn-etiquetas {
+    width: auto; margin: 0; padding: 8px 12px; font-size: 12px;
+    background: #1B2A3A; color: #fff; border-radius: 18px;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, .25);
+}
+.btn-etiquetas:hover { background: #2E86C1; }
+.btn-etiquetas.areas { background: #E67E22; }
+.btn-etiquetas.limpio { background: #27AE60; }
+
+/* ocultar etiquetas según el modo */
+body.etiquetas-ninguna .bloque-content,
+body.etiquetas-ninguna .recinto-lbl,
+body.etiquetas-ninguna .marco-lbl { display: none !important; }
+
+body.etiquetas-areas .bloque-content > span:first-child,
+body.etiquetas-areas .bloque-content > br { display: none !important; }
+body.etiquetas-areas .recinto-nombre { display: none; }
+body.etiquetas-areas .marco-lbl { display: none; }
+
+.recinto-nombre::after { content: ' · '; }
+.recinto-area { white-space: nowrap; }
+
+@media (max-width: 820px) {
+    #barraVista { top: 10px; right: 10px; gap: 4px; max-width: calc(100vw - 70px); }
+    #barraVista .btn-etiquetas, #barraVista .btn-vivo3d {
+        font-size: 10px; padding: 6px 9px;
+    }
+}

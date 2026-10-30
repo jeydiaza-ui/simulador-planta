@@ -106,7 +106,7 @@
 
             <div class="form-group" style="margin-top:8px">
                 <label class="chk"><input type="checkbox" id="verNombres" checked>
-                    Mostrar nombres en el plano</label>
+                    Mostrar nombres y áreas en el plano</label>
             </div>
             <div id="totales" aria-live="polite">
                 <p><span>Área total:</span> <span id="txtTotal">0 m²</span></p>
@@ -290,7 +290,7 @@
             <input type="file" id="fileImportar" accept="application/json,.json" hidden>
             <button id="btnBorrarTodo" class="btn-borrar">Borrar todo el plano</button>
             <button id="btnAyuda" class="btn-sec">❔ Guía rápida</button>
-            <p class="pie">v1.4.5 · Funciona sin conexión · Los datos quedan en tu dispositivo.</p>
+            <p class="pie">v1.4.6 · Funciona sin conexión · Los datos quedan en tu dispositivo.</p>
         </section>
 
         <!-- ===================== FORMULARIO COMPARTIDO ===================== -->
@@ -441,8 +441,12 @@
             <span id="txtZoom">100%</span>
             <button id="btnMas" title="Acercar">+</button>
         </div>
-        <button id="btnVivo3D" class="btn-vivo3d" type="button"
-            title="Mostrar u ocultar la vista 3D mientras editas">🧊 3D en vivo</button>
+        <div id="barraVista">
+            <button id="btnEtiquetas" class="btn-etiquetas" type="button"
+                title="Mostrar todas las etiquetas, solo las áreas o el plano limpio">🏷️ Todas</button>
+            <button id="btnVivo3D" class="btn-vivo3d" type="button"
+                title="Mostrar u ocultar la vista 3D mientras editas">🧊 3D en vivo</button>
+        </div>
         <div id="wrapper">
             <div id="regla-x" aria-hidden="true"></div>
             <div id="regla-y" aria-hidden="true"></div>
