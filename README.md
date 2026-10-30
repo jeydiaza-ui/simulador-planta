@@ -6,7 +6,7 @@ Funciona sin conexión, se instala en el celular o en el PC y **guarda el trabaj
 
 ![Vista 3D del taller](docs/v14-3d.png)
 
-> Versión **1.4.6** · Un solo HTML + CSS + JS, **sin dependencias** · Publicada en
+> Versión **1.4.7** · Un solo HTML + CSS + JS, **sin dependencias** · Publicada en
 > [GitHub Pages](https://jeydiaza-ui.github.io/simulador-planta/).
 
 ## ⬇️ Descargar
@@ -33,6 +33,9 @@ Funciona sin conexión, se instala en el celular o en el PC y **guarda el trabaj
 - **Puertas y ventanas visibles en el 3D**: con los techos apagados, las cuatro paredes de cada
   edificación se dibujan bajas para mirar el interior y las puertas aparecen como hojas de color;
   con los techos encendidos se ven los huecos reales en las paredes.
+- **Marcación automática según paredes**: la franja ya no rodea todo por defecto. Si el equipo
+  toca una pared queda en **U**, si está en una esquina en **L** y si tiene tres lados tapados en **I**.
+  En la etapa 4 puedes elegir “Automática” o forzar perímetro/U/L/frente.
 - **Etiquetas a un clic**: botón **🏷️** arriba a la derecha para alternar **Todas → Solo áreas → Limpio**.
   En “Limpio” el plano queda sin nombres, áreas ni rótulos de recintos/marcos, pero conserva equipos,
   marcación y colores. La app recuerda el modo elegido.

@@ -18,7 +18,7 @@ const MODO_TEST = new URLSearchParams(location.search).has('selftest') ||
 
 /* ---------------- estado ---------------- */
 let estado = {
-    version: 2, ancho: 10.13, fondo: 20.45,
+    version: 3, ancho: 10.13, fondo: 20.45,
     bloques: [], aberturas: [], recintos: [],
     altoPared: 4, cubierta: 'plana', alturaCumbrera: 6, colorPared: '#e6e2da',
     imgParedesCompletas: false
@@ -107,7 +107,7 @@ function crearBodega(ancho, fondo, forzar) {
 
   sincronizarExtras();
   estado = {
-    version: 2, ancho, fondo, bloques: [], aberturas: [], recintos: [],
+    version: 3, ancho, fondo, bloques: [], aberturas: [], recintos: [],
     altoPared: estado.altoPared, cubierta: estado.cubierta,
     alturaCumbrera: estado.alturaCumbrera, colorPared: estado.colorPared,
     imgParedesCompletas: !!estado.imgParedesCompletas
@@ -276,7 +276,7 @@ function leerFormulario() {
   if (b.a <= 0 || b.f <= 0) return null;
   b.marca = null;
   b.marcaColor = 'amarillo-negro';
-  b.marcaForma = 'perimetro';
+  b.marcaForma = 'auto';
   if (cat === 'objeto' && $('conMarca').checked) {
     b.marca = anchoMarcaActual();
     if ($('marcaColor')) b.marcaColor = $('marcaColor').value;
@@ -663,6 +663,7 @@ function crearElBloque(b) {
 }
 
 const LADOS_MARCA = {
+  auto: ['izq', 'abajo', 'der'],
   perimetro: ['arriba', 'abajo', 'izq', 'der'],
   u: ['izq', 'abajo', 'der'],
   l: ['izq', 'abajo'],
@@ -676,11 +677,53 @@ function anchoMarcaActual() {
   return num(mod ? mod.value : (form ? form.value : 20), 20);
 }
 
+function ladosBloqueados(b) {
+  const tol = 0.15 * ESCALA;
+  const x0 = b.x, y0 = b.y, x1 = x0 + b.a * ESCALA, y1 = y0 + b.f * ESCALA;
+  const bod = $('bodega');
+  const W = bod ? bod.clientWidth : estado.ancho * ESCALA;
+  const H = bod ? bod.clientHeight : estado.fondo * ESCALA;
+  const q = { arriba: false, abajo: false, izq: false, der: false };
+  if (x0 <= tol) q.izq = true;
+  if (y0 <= tol) q.arriba = true;
+  if (W - x1 <= tol) q.der = true;
+  if (H - y1 <= tol) q.abajo = true;
+
+  const cx = x0 + (b.a * ESCALA) / 2, cy = y0 + (b.f * ESCALA) / 2;
+  const ed = estado.bloques.find(e => e !== b && e.cat === 'edificacion' &&
+    cx > e.x && cx < e.x + e.a * ESCALA && cy > e.y && cy < e.y + e.f * ESCALA);
+  if (ed) {
+    if (x0 - ed.x <= tol) q.izq = true;
+    if (y0 - ed.y <= tol) q.arriba = true;
+    if (ed.x + ed.a * ESCALA - x1 <= tol) q.der = true;
+    if (ed.y + ed.f * ESCALA - y1 <= tol) q.abajo = true;
+  }
+
+  estado.bloques.filter(m => m.cat === 'muro').forEach(m => {
+    const mx0 = m.x, my0 = m.y, mx1 = m.x + m.a * ESCALA, my1 = m.y + m.f * ESCALA;
+    const tocaX = mx1 > x0 && mx0 < x1;
+    const tocaY = my1 > y0 && my0 < y1;
+    if (mx1 >= x0 - tol && mx0 <= x0 + tol && tocaY) q.izq = true;
+    if (mx1 >= x1 - tol && mx0 <= x1 + tol && tocaY) q.der = true;
+    if (my1 >= y0 - tol && my0 <= y0 + tol && tocaX) q.arriba = true;
+    if (my1 >= y1 - tol && my0 <= y1 + tol && tocaX) q.abajo = true;
+  });
+  return q;
+}
+
+function ladosDeMarca(b) {
+  const forma = b.marcaForma || 'auto';
+  if (forma === 'auto') {
+    const q = ladosBloqueados(b);
+    return ['arriba', 'abajo', 'izq', 'der'].filter(k => !q[k]);
+  }
+  return LADOS_MARCA[forma] || LADOS_MARCA.perimetro;
+}
+
 function ponerFranja(w, b) {
   const m = Math.max(2, Math.round((b.marca || 0) / 100 * ESCALA));
-  const forma = b.marcaForma || 'perimetro';
   const color = b.marcaColor || 'amarillo-negro';
-  (LADOS_MARCA[forma] || LADOS_MARCA.perimetro).forEach(k => {
+  ladosDeMarca(b).forEach(k => {
     const d = document.createElement('div');
     d.className = 'franja f-' + k + ' ' + color;
     d.style.setProperty('--fm', m + 'px');
@@ -877,7 +920,8 @@ function iniciarArrastreBloque(e, id) {
       moverConContenido(b, dx, dy);
       render();
     } else {
-      w.style.left = b.x + 'px'; w.style.top = b.y + 'px';
+      // se vuelve a dibujar para recalcular la marcación automática contra paredes/muros
+      render();
     }
     if (!libre) error('No había espacio libre: quedó encimado. Puedes activar «Mover libre».');
     marcarPosicion(b);
@@ -1684,7 +1728,7 @@ function normalizarBloques(arr) {
 function documentoProyecto() {
     sincronizarExtras();
     return {
-        app: 'ctc-planta', version: 2, fecha: new Date().toISOString(),
+        app: 'ctc-planta', version: 3, fecha: new Date().toISOString(),
         nombre: nombreProyecto,
         ancho: estado.ancho, fondo: estado.fondo,
         extras: {
@@ -1773,7 +1817,7 @@ function guardarLocal() {
     if (MODO_TEST) return;
     try {
         localStorage.setItem(LS_KEY, JSON.stringify({
-            version: 2, ancho: estado.ancho, fondo: estado.fondo,
+            version: 3, ancho: estado.ancho, fondo: estado.fondo,
             bloques: estado.bloques, aberturas: estado.aberturas,
             recintos: estado.recintos, extras: documentoProyecto().extras,
             nombre: nombreProyecto
@@ -1820,7 +1864,7 @@ async function guardarProyecto(manual) {
         // respaldo sin fotos, por si el navegador no deja IndexedDB
         try {
             localStorage.setItem(LS_KEY, JSON.stringify({
-                version: 2, ancho: estado.ancho, fondo: estado.fondo,
+                version: 3, ancho: estado.ancho, fondo: estado.fondo,
                 bloques: estado.bloques, aberturas: estado.aberturas,
                 recintos: estado.recintos, extras: documentoProyecto().extras, nombre: nombreProyecto
             }));
@@ -1868,8 +1912,9 @@ async function cargarProyectoInicial() {
 
 function aplicarProyecto(d) {
     const ex = d.extras || {};
+    const versionDoc = num(d.version, 1);
     estado = {
-        version: 2,
+        version: 3,
         ancho: Math.max(1, num(d.ancho, 10.13)),
         fondo: Math.max(1, num(d.fondo, 20.45)),
         bloques: normalizarBloques(d.bloques),
@@ -1889,6 +1934,12 @@ function aplicarProyecto(d) {
         if (Array.isArray(d.biblioteca.extra)) bibExtra = d.biblioteca.extra;
         if (Array.isArray(d.biblioteca.ocultos)) bibOcultos = d.biblioteca.ocultos;
         pintarBiblioteca();
+    }
+    // proyectos viejos: el perímetro fijo era el valor por defecto; pasarlo a automático
+    if (versionDoc < 3) {
+        estado.bloques.forEach(b => {
+            if (b && b.marca && (!b.marcaForma || b.marcaForma === 'perimetro')) b.marcaForma = 'auto';
+        });
     }
     nombreProyecto = (d.nombre || 'Taller CTC Energy').slice(0, 60);
     aplicarExtras();
@@ -1967,7 +2018,7 @@ async function compartirProyecto() {
 function nuevoProyecto() {
     if (!confirm('¿Empezar un proyecto nuevo? Se borra el plano actual (el guardado anterior se reemplaza).')) return;
     estado = {
-        version: 2, ancho: 10.13, fondo: 20.45, bloques: [], aberturas: [],
+        version: 3, ancho: 10.13, fondo: 20.45, bloques: [], aberturas: [],
         recintos: [], altoPared: 4, cubierta: 'plana', alturaCumbrera: 6, colorPared: '#e6e2da',
         imgParedesCompletas: false
     };
@@ -2593,7 +2644,7 @@ function cambiarTab(nombre) {
 function datosMarca() {
   return {
     color: $('marcaColor') ? $('marcaColor').value : 'amarillo-negro',
-    forma: $('marcaForma') ? $('marcaForma').value : 'perimetro',
+    forma: $('marcaForma') ? $('marcaForma').value : 'auto',
     cm: num($('marcaAncho') ? $('marcaAncho').value : 20, 20)
   };
 }
@@ -3155,7 +3206,7 @@ async function iniciar() {
       try {
         sincronizarExtras();
         localStorage.setItem(LS_KEY, JSON.stringify({
-          version: 2, ancho: estado.ancho, fondo: estado.fondo,
+          version: 3, ancho: estado.ancho, fondo: estado.fondo,
           bloques: estado.bloques, aberturas: estado.aberturas,
           recintos: estado.recintos, extras: documentoProyecto().extras,
           nombre: nombreProyecto
@@ -3337,7 +3388,7 @@ function borrarTodo(silencioso) {
   const hayFotos = Object.keys(fotosPared).length > 0;
   if (!silencioso && !confirm('¿Borrar todo el plano?' +
       (hayFotos ? '\n\nTambién se quitarán las fotos de pared del 3D.' : ''))) return false;
-  estado = { ancho: estado.ancho, fondo: estado.fondo, bloques: [], aberturas: [], recintos: [], version: 2,
+  estado = { ancho: estado.ancho, fondo: estado.fondo, bloques: [], aberturas: [], recintos: [], version: 3,
     altoPared: estado.altoPared, cubierta: estado.cubierta,
     alturaCumbrera: estado.alturaCumbrera, colorPared: estado.colorPared,
     imgParedesCompletas: !!estado.imgParedesCompletas };
@@ -3530,10 +3581,16 @@ function correrTest() {
     return estado.bloques.every(b => b.x >= 0 && b.y >= 0 && b.x + b.a * ESCALA <= W + 0.5 && b.y + b.f * ESCALA <= H + 0.5);
   });
 
-  t('franja de marcaci\u00f3n dibujada', () => {
-    $('nombreBloque').value = 'Con franja'; $('anchoBloque').value = 1; $('fondoBloque').value = 1;
-    $('conMarca').checked = true; agregarBloqueAuto();
-    return document.querySelectorAll('.franja').length >= 4;
+  t('marcaci\u00f3n autom\u00e1tica en U contra la pared', () => {
+    borrarTodo(true);
+    const b = { id: nuevoId('b'), cod: 'EQ1', cat: 'objeto', nombre: 'Pegado', a: 2, f: 1, h: 1,
+      color: '#f1c40f', peso: 0, marca: 20, marcaColor: 'amarillo-negro', marcaForma: 'auto',
+      stand: null, estante: null, foto: null, silueta: false, rot: false, x: 0, y: 100 };
+    estado.bloques.push(b); render();
+    const w = document.querySelector('.bloque-wrapper[data-id="' + b.id + '"]');
+    const lados = Array.from(w.querySelectorAll('.franja')).map(x => (x.className.match(/f-(\w+)/) || [])[1]);
+    return lados.length === 3 && lados.indexOf('izq') < 0 &&
+      lados.indexOf('arriba') >= 0 && lados.indexOf('abajo') >= 0 && lados.indexOf('der') >= 0;
   });
 
   t('vista 3D genera caras', () => {

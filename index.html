@@ -202,10 +202,11 @@
                 </div>
                 <div><label for="marcaForma">Forma</label>
                     <select id="marcaForma">
-                        <option value="perimetro">Perímetro completo</option>
+                        <option value="auto" selected>Automática (U/L/I según paredes)</option>
+                        <option value="perimetro">Perímetro completo (4 lados)</option>
                         <option value="u">En U (3 lados)</option>
                         <option value="l">En L (2 lados)</option>
-                        <option value="frente">Solo el frente</option>
+                        <option value="frente">Solo el frente (I)</option>
                         <option value="lados">Solo los lados</option>
                     </select>
                 </div>
@@ -213,6 +214,8 @@
             <div id="vistaMarca" class="vista-marca"></div>
             <button id="btnMarcaSel" class="btn-primario">Aplicar al seleccionado</button>
             <button id="btnMarcaTodos" class="btn-sec">Aplicar a todos los equipos</button>
+            <p class="ayuda">En <b>Automática</b> se quita la franja del lado que toca una pared o muro:
+                queda en <b>U</b> (1 pared), <b>L</b> (esquina) o <b>I</b> (3 lados tapados).</p>
 
             <h3 class="sub" style="margin-top:16px">B · Marco estirable (alrededor del equipo)</h3>
             <p class="ayuda">Selecciona un equipo o una edificación y pulsa «Crear marco».
@@ -290,7 +293,7 @@
             <input type="file" id="fileImportar" accept="application/json,.json" hidden>
             <button id="btnBorrarTodo" class="btn-borrar">Borrar todo el plano</button>
             <button id="btnAyuda" class="btn-sec">❔ Guía rápida</button>
-            <p class="pie">v1.4.6 · Funciona sin conexión · Los datos quedan en tu dispositivo.</p>
+            <p class="pie">v1.4.7 · Funciona sin conexión · Los datos quedan en tu dispositivo.</p>
         </section>
 
         <!-- ===================== FORMULARIO COMPARTIDO ===================== -->
