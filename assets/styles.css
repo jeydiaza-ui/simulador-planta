@@ -655,3 +655,9 @@ body.etiquetas-areas .marco-lbl { display: none; }
         font-size: 10px; padding: 6px 9px;
     }
 }
+
+/* el marco no debe tapar el equipo: solo sus franjas y tiradores reciben el toque */
+.marca-wrapper { pointer-events: none; }
+.marco { pointer-events: none; }
+.marco-franja { pointer-events: auto; }
+.marco-wrapper .mh { pointer-events: auto; }
