@@ -23,7 +23,7 @@
     .hero img { width: 100%; max-height: 118mm; object-fit: contain; border: 1px solid #cfd8dc; border-radius: 3mm; }
     .foot { margin-top: auto; font-size: 8pt; color: #7F8C8D;
             border-top: 1px solid #ddd; padding-top: 2mm; display: flex; justify-content: space-between; }
-    .shot { height: auto; max-height: 46mm; width: auto; max-width: 100%; display: block; margin: 2mm auto 3mm; border: 1px solid #cfd8dc; border-radius: 2mm; }
+    .shot { height: auto; max-height: 33mm; width: auto; max-width: 100%; display: block; margin: 2mm auto 3mm; border: 1px solid #cfd8dc; border-radius: 2mm; }
     .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 5mm; }
     .card { background: #F4F7FA; border: 1px solid #DDE3E9; border-radius: 2mm; padding: 3mm; }
     .card h3 { margin-top: 0; }
@@ -52,7 +52,7 @@
     <h1>Simulador de Planta</h1>
     <p class="sub">Guía rápida para dibujar el taller por etapas, guardar el trabajo,
         compartirlo en 3D por WhatsApp e imprimir el plano en PDF.</p>
-    <p><span class="tag">Versión 1.4.4</span> &nbsp; <span class="tiny">Octubre de 2026 · 5 etapas · 3D en vivo · 44 pruebas automáticas</span></p>
+    <p><span class="tag">Versión 1.4.5</span> &nbsp; <span class="tiny">Octubre de 2026 · 5 etapas · 3D en vivo · 44 pruebas automáticas</span></p>
     <div class="hero"><img src="v14-3d.png" alt="Vista 3D del taller"></div>
     <div class="foot"><span>Simulador de Planta CTC Energy · Guía rápida</span><span>1</span></div>
 </div>
@@ -83,7 +83,7 @@
         <tr><th>Acción</th><th>Cómo</th></tr>
         <tr><td>Mover un elemento</td><td>Mantén pulsado y arrastra (ratón o dedo).</td></tr>
         <tr><td>Seleccionar / editar</td><td>Toca el elemento: arriba del panel aparece su ficha.</td></tr>
-        <tr><td>Girar 90°</td><td>Botón <b>↻</b> del elemento: gira siempre; si no cabe, avisa y queda encimado.</td></tr>
+        <tr><td>Girar 90°</td><td>Botón <b>↻</b> del elemento o <b>↻ Girar 90°</b> en la ficha: gira siempre; si no cabe, avisa.</td></tr>
         <tr><td>Borrar</td><td>Botón <b>×</b> del elemento o <b>Eliminar</b> en la ficha.</td></tr>
         <tr><td>Deshacer</td><td><span class="kbd">Ctrl</span> + <span class="kbd">Z</span> o el botón <b>↩️</b>.</td></tr>
         <tr><td>Hacer zoom</td><td>Botones <b>−</b> / <b>+</b> abajo a la derecha.</td></tr>
@@ -110,7 +110,8 @@
         <li>Para partir un área en dos, pulsa <b>↔</b> o <b>↕</b> en la ficha de la edificación:
             se crea el muro completo y aparecen los dos recintos con su área.</li>
         <li>Agrega <b>Muros</b> (el ancho se propone igual al del cuarto), <b>puertas/ventanas</b> y <b>equipos</b>.</li>
-        <li>En <b>Recintos y áreas</b> escribe el nombre de cada tramo. Puedes mover el muro: el nombre se conserva.</li>
+        <li>En <b>Recintos y áreas</b> escribe el nombre de cada tramo. Puedes mover el muro: el nombre se conserva.
+            Si el muro no llega a las paredes, selecciónalo y pulsa <b>↔ Cerrar muro hasta las paredes</b>.</li>
         <li>Si mueves la edificación, <b>todo su contenido se mueve con ella</b>.</li>
     </ol>
     <img class="shot" src="v14-edificaciones.png" alt="Etapa 2">
@@ -129,6 +130,9 @@
         <li>Puedes ajustar medidas, color, stand, estante y foto en la ficha del elemento.</li>
         <li>El panel <b>3D en vivo</b> se actualiza solo con cada equipo que agregas; con <b>⤢</b>
             lo ves en pantalla completa y con <b>📤</b> lo compartes.</li>
+        <li>Para la imagen que envías por WhatsApp, en la etapa 5 puedes marcar
+            <b>“paredes completas de las edificaciones”</b> (cierra el frente) o dejarla desmarcada:
+            el frente sale translúcido, sin medias paredes, y las puertas/ventanas se dibujan.</li>
         <li>En el 3D grande, con <b>Mostrar techos</b> apagado las paredes de las edificaciones se ven
             bajas para mirar adentro y las <b>puertas</b> aparecen como hojas de color. Si enciendes los
             techos, las paredes suben y las puertas/ventanas se ven como huecos.</li>

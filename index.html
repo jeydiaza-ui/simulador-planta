@@ -69,6 +69,8 @@
                 </div>
             </div>
             <button id="btnSelAplicar" class="btn-primario">Aplicar cambios</button>
+            <button id="btnSelCerrarMuro" class="btn-sec" style="display:none">↔ Cerrar muro hasta las paredes (dividir área)</button>
+            <button id="btnSelRotar" class="btn-sec">↻ Girar 90°</button>
             <div class="fila-campos">
                 <button id="btnSelDup" class="btn-sec">Duplicar</button>
                 <button id="btnSelDel" class="btn-borrar">Eliminar</button>
@@ -249,6 +251,8 @@
                 <button id="btnCompartir3D" class="btn-wa">📤 Compartir 3D</button>
                 <button id="btnPng3D" class="btn-sec">⬇ PNG 3D</button>
             </div>
+            <label class="chk" style="margin-top:6px"><input type="checkbox" id="imgParedesCompletas">
+                En la imagen 3D: paredes completas de las edificaciones (desmarca para ver el interior)</label>
             <button id="btnImprimir" class="btn-print">🖨️ Imprimir / PDF 2D</button>
             <p class="ayuda">En el celular: elige «Compartir 3D» y luego WhatsApp.
                 Para el PDF, elige «Guardar como PDF» en la impresión.</p>
@@ -286,7 +290,7 @@
             <input type="file" id="fileImportar" accept="application/json,.json" hidden>
             <button id="btnBorrarTodo" class="btn-borrar">Borrar todo el plano</button>
             <button id="btnAyuda" class="btn-sec">❔ Guía rápida</button>
-            <p class="pie">v1.4.4 · Funciona sin conexión · Los datos quedan en tu dispositivo.</p>
+            <p class="pie">v1.4.5 · Funciona sin conexión · Los datos quedan en tu dispositivo.</p>
         </section>
 
         <!-- ===================== FORMULARIO COMPARTIDO ===================== -->
@@ -466,7 +470,7 @@
             <button id="btnCerrar3D">✕ Cerrar 3D</button>
             <button id="btnCompartir3DView">📤 Compartir PNG</button>
             <button id="btnPng3DView">⬇ Descargar PNG</button>
-            <span class="ayuda3d">Arrastra para girar · rueda para acercar · sin techos se ven las paredes bajas y las puertas</span>
+            <span class="ayuda3d">Arrastra para girar · rueda para acercar · sin techos las paredes son translúcidas y se ven las puertas</span>
         </div>
         <div id="escena3d"><div id="mundo3d"></div></div>
     </div>

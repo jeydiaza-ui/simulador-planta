@@ -20,7 +20,8 @@ const MODO_TEST = new URLSearchParams(location.search).has('selftest') ||
 let estado = {
     version: 2, ancho: 10.13, fondo: 20.45,
     bloques: [], aberturas: [], recintos: [],
-    altoPared: 4, cubierta: 'plana', alturaCumbrera: 6, colorPared: '#e6e2da'
+    altoPared: 4, cubierta: 'plana', alturaCumbrera: 6, colorPared: '#e6e2da',
+    imgParedesCompletas: false
 };
 let nombreProyecto = 'Taller CTC Energy';
 let SNAP = 2;
@@ -108,7 +109,8 @@ function crearBodega(ancho, fondo, forzar) {
   estado = {
     version: 2, ancho, fondo, bloques: [], aberturas: [], recintos: [],
     altoPared: estado.altoPared, cubierta: estado.cubierta,
-    alturaCumbrera: estado.alturaCumbrera, colorPared: estado.colorPared
+    alturaCumbrera: estado.alturaCumbrera, colorPared: estado.colorPared,
+    imgParedesCompletas: !!estado.imgParedesCompletas
   };
   $('anchoBodega').value = ancho;
   $('fondoBodega').value = fondo;
@@ -567,6 +569,8 @@ function render() {
   }
   actualizarTotales();
   dibujarRecintos();
+  const tabActiva = document.querySelector('.tab.activa');
+  if (tabActiva && tabActiva.dataset.tab === 'edif') pintarRecintos();
   programarVivo3D();
 }
 
@@ -582,6 +586,7 @@ function crearElBloque(b) {
   if (b.stand) w.dataset.stand = '1';
   w.style.width = (b.a * ESCALA) + 'px';
   w.style.height = (b.f * ESCALA) + 'px';
+  if (b.a * ESCALA < 42 || b.f * ESCALA < 30) w.classList.add('mini');
   w.style.left = b.x + 'px';
   w.style.top = b.y + 'px';
   w.style.zIndex = b.cat === 'libre' ? 0 : (++zTop);
@@ -598,13 +603,13 @@ function crearElBloque(b) {
   del.className = 'btn-del'; del.type = 'button'; del.textContent = '×'; del.title = 'Eliminar';
   del.addEventListener('pointerdown', e => e.stopPropagation());
   del.addEventListener('click', e => { e.stopPropagation(); borrarBloque(b.id); });
-  bl.appendChild(del);
+  w.appendChild(del);
 
   const rot = document.createElement('button');
   rot.className = 'btn-rot'; rot.type = 'button'; rot.textContent = '↻'; rot.title = 'Girar 90°';
   rot.addEventListener('pointerdown', e => e.stopPropagation());
   rot.addEventListener('click', e => { e.stopPropagation(); rotarBloque(b.id); });
-  bl.appendChild(rot);
+  w.appendChild(rot);
 
   if (b.foto && fotos[b.foto]) {
     const fd = document.createElement('div');
@@ -1448,45 +1453,42 @@ function abrir3D() {
       mundo.appendChild(cara(w, d, 'translate3d(' + l + 'px, ' + (-h) + 'px, ' + t + 'px) rotateX(90deg)',
         Object.assign({}, base, { transformOrigin: '0 0' }), etiqueta));
     }
-    // edificaciones sin techo: las 4 paredes quedan bajas para ver el interior desde cualquier ángulo
+    // edificaciones sin techo: paredes completas translúcidas para ver el interior
     const esEdif = b.cat === 'edificacion';
-    const bajoEdif = esEdif && !verTechos;
-    const hBaja = bajoEdif ? Math.min(h, 15) : h;
+    const translucido = esEdif && !verTechos;
     if (esEdif) {
       mundo.appendChild(cara(w, d, 'translate3d(' + l + 'px, -1px, ' + t + 'px) rotateX(90deg)', {
         transformOrigin: '0 0', background: 'rgba(52,152,219,.14)', outline: 'none'
       }));
     }
-    const hW = bajoEdif ? hBaja : h;
-    const sinHuecos = bajoEdif;
+    const hW = h;
+    const estiloEdif = br => {
+      const e = lado(br);
+      if (translucido) e.opacity = 0.32;
+      return e;
+    };
     mundo.appendChild(caraMuro(w, hW, 'translate3d(' + l + 'px, ' + (-hW) + 'px, ' + (t + d) + 'px)',
-      lado(1), b.color, sinHuecos ? [] : huecosDe(b.id, 'abajo', h, false, b.a), sinHuecos ? '' : abHTML(b.id, 'abajo', b.a, h, false)));
+      estiloEdif(1), b.color, huecosDe(b.id, 'abajo', h, false, b.a), abHTML(b.id, 'abajo', b.a, h, false)));
     mundo.appendChild(caraMuro(w, hW, 'translate3d(' + l + 'px, ' + (-hW) + 'px, ' + t + 'px) rotateY(180deg)',
-      lado(0.7), b.color, sinHuecos ? [] : huecosDe(b.id, 'arriba', h, true, b.a), sinHuecos ? '' : abHTML(b.id, 'arriba', b.a, h, true)));
+      estiloEdif(0.7), b.color, huecosDe(b.id, 'arriba', h, true, b.a), abHTML(b.id, 'arriba', b.a, h, true)));
     mundo.appendChild(caraMuro(d, hW, 'translate3d(' + (l - d / 2) + 'px, ' + (-hW) + 'px, ' + (t + d / 2) + 'px) rotateY(-90deg)',
-      lado(0.85), b.color, sinHuecos ? [] : huecosDe(b.id, 'izq', h, false, b.f), sinHuecos ? '' : abHTML(b.id, 'izq', b.f, h, false)));
+      estiloEdif(0.85), b.color, huecosDe(b.id, 'izq', h, false, b.f), abHTML(b.id, 'izq', b.f, h, false)));
     mundo.appendChild(caraMuro(d, hW, 'translate3d(' + (l + w - d / 2) + 'px, ' + (-hW) + 'px, ' + (t + d / 2) + 'px) rotateY(90deg)',
-      lado(0.65), b.color, sinHuecos ? [] : huecosDe(b.id, 'der', h, true, b.f), sinHuecos ? '' : abHTML(b.id, 'der', b.f, h, true)));
+      estiloEdif(0.65), b.color, huecosDe(b.id, 'der', h, true, b.f), abHTML(b.id, 'der', b.f, h, true)));
 
-    // puertas y ventanas visibles aunque la pared esté baja (hoja/marco en 3D)
-    if (bajoEdif) {
+    // puertas y ventanas visibles (hoja/marco en 3D)
+    if (translucido) {
       estado.aberturas.filter(a => a.dueno === b.id).forEach(a => {
         const anchoPx = Math.max(4, num(a.ancho, 1) * ESCALA);
         const altoPx = Math.max(4, num(a.alto, 2) * ESCALA);
-        // la puerta arranca en el piso; la ventana se dibuja pegada al borde de la pared baja
-        const y0 = a.tipo === 'ventana'
-          ? hBaja
-          : Math.max(0, num(a.desde, 0) * ESCALA);
-        const altoPanel = a.tipo === 'ventana'
-          ? Math.max(6, (num(a.desde, 0) * ESCALA + altoPx) - hBaja)
-          : altoPx;
+        const y0 = Math.max(0, num(a.desde, 0) * ESCALA);
         const pos = Math.max(0, num(a.pos, 0) * ESCALA);
         const col = a.tipo === 'puerta' ? 'rgba(139,69,19,.72)'
           : a.tipo === 'ventana' ? 'rgba(93,173,226,.58)' : 'rgba(44,62,80,.42)';
-        if (a.pared === 'abajo') caja3D(mundo, l + pos, t + d - 1.5, anchoPx, 3, y0, altoPanel, col);
-        else if (a.pared === 'arriba') caja3D(mundo, l + pos, t - 1.5, anchoPx, 3, y0, altoPanel, col);
-        else if (a.pared === 'izq') caja3D(mundo, l - 1.5, t + pos, 3, anchoPx, y0, altoPanel, col);
-        else caja3D(mundo, l + w - 1.5, t + pos, 3, anchoPx, y0, altoPanel, col);
+        if (a.pared === 'abajo') caja3D(mundo, l + pos, t + d - 1.5, anchoPx, 3, y0, altoPx, col);
+        else if (a.pared === 'arriba') caja3D(mundo, l + pos, t - 1.5, anchoPx, 3, y0, altoPx, col);
+        else if (a.pared === 'izq') caja3D(mundo, l - 1.5, t + pos, 3, anchoPx, y0, altoPx, col);
+        else caja3D(mundo, l + w - 1.5, t + pos, 3, anchoPx, y0, altoPx, col);
       });
     }
   });
@@ -1589,6 +1591,7 @@ function sincronizarExtras() {
     if (cu) estado.cubierta = cu.value;
     if (ac) estado.alturaCumbrera = Math.max(1, num(ac.value, 6));
     if (cp) estado.colorPared = cp.value;
+    if ($('imgParedesCompletas')) estado.imgParedesCompletas = $('imgParedesCompletas').checked;
     estado.nombreProyecto = nombreProyecto;
 }
 
@@ -1598,6 +1601,7 @@ function aplicarExtras() {
     if ($('alturaCumbrera')) $('alturaCumbrera').value = num(estado.alturaCumbrera, 6);
     if ($('colorPared')) $('colorPared').value = estado.colorPared || '#e6e2da';
     if ($('nombreProyecto')) $('nombreProyecto').value = nombreProyecto;
+    if ($('imgParedesCompletas')) $('imgParedesCompletas').checked = !!estado.imgParedesCompletas;
     if ($('verTechos')) $('verTechos').checked = false;
 }
 
@@ -1659,7 +1663,8 @@ function documentoProyecto() {
         ancho: estado.ancho, fondo: estado.fondo,
         extras: {
             altoPared: estado.altoPared, cubierta: estado.cubierta,
-            alturaCumbrera: estado.alturaCumbrera, colorPared: estado.colorPared
+            alturaCumbrera: estado.alturaCumbrera, colorPared: estado.colorPared,
+            imgParedesCompletas: !!estado.imgParedesCompletas
         },
         bloques: estado.bloques, aberturas: estado.aberturas,
         recintos: estado.recintos,
@@ -1847,7 +1852,8 @@ function aplicarProyecto(d) {
         altoPared: Math.max(1, num(ex.altoPared || d.altoPared, 4)),
         cubierta: ex.cubierta || d.cubierta || 'plana',
         alturaCumbrera: Math.max(1, num(ex.alturaCumbrera || d.alturaCumbrera, 6)),
-        colorPared: ex.colorPared || d.colorPared || '#e6e2da'
+        colorPared: ex.colorPared || d.colorPared || '#e6e2da',
+        imgParedesCompletas: !!ex.imgParedesCompletas
     };
     Object.keys(fotos).forEach(k => delete fotos[k]);
     if (d.fotos && typeof d.fotos === 'object') Object.assign(fotos, d.fotos);
@@ -1936,7 +1942,8 @@ function nuevoProyecto() {
     if (!confirm('¿Empezar un proyecto nuevo? Se borra el plano actual (el guardado anterior se reemplaza).')) return;
     estado = {
         version: 2, ancho: 10.13, fondo: 20.45, bloques: [], aberturas: [],
-        recintos: [], altoPared: 4, cubierta: 'plana', alturaCumbrera: 6, colorPared: '#e6e2da'
+        recintos: [], altoPared: 4, cubierta: 'plana', alturaCumbrera: 6, colorPared: '#e6e2da',
+        imgParedesCompletas: false
     };
     Object.keys(fotos).forEach(k => delete fotos[k]);
     limpiarFotosPared();
@@ -1997,14 +2004,14 @@ function instantanea() {
         nombreProyecto: nombreProyecto, ancho: estado.ancho, fondo: estado.fondo,
         altoPared: estado.altoPared, cubierta: estado.cubierta,
         alturaCumbrera: estado.alturaCumbrera, colorPared: estado.colorPared,
-        bloques: estado.bloques, fotos: fotos
+        bloques: estado.bloques, fotos: fotos, aberturas: estado.aberturas
     };
 }
 
-async function imagen3D() {
+async function imagen3D(opts) {
     if (!window.CTC3D) { error('No está disponible el generador de imagen'); return null; }
     try {
-        return await window.CTC3D.render(instantanea());
+        return await window.CTC3D.render(instantanea(), opts || {});
     } catch (e) {
         error('No se pudo dibujar la vista 3D');
         return null;
@@ -2012,12 +2019,9 @@ async function imagen3D() {
 }
 
 async function compartir3D(soloDescargar) {
-    let cv = imagenCache;
-    if (!cv) {
-        cv = await imagen3D();
-        if (!cv) return;
-        imagenCache = cv;
-    }
+    const completas = $('imgParedesCompletas') ? $('imgParedesCompletas').checked : false;
+    const cv = await imagen3D({ paredesCompletas: completas });
+    if (!cv) return;
     const blob = await window.CTC3D.aBlob(cv);
     if (!blob) { error('No se pudo crear el PNG'); return; }
     const nombre = 'planta-3d-' + slug(nombreProyecto) + '-' + fechaArchivo() + '.png';
@@ -2439,6 +2443,21 @@ function refrescarEdificaciones() {
         fila.append(t, acc);
         c.appendChild(fila);
     });
+}
+
+function cerrarMuroSeleccionado() {
+    const b = estado.bloques.find(x => x.id === selId);
+    if (!b || b.cat !== 'muro') { aviso('Selecciona un muro divisorio'); return; }
+    const ed = estado.bloques.find(e => e.cat === 'edificacion' && dentroDe(b, e));
+    if (!ed) { aviso('Ese muro no está dentro de una edificación'); return; }
+    const esV = b.f > b.a;
+    if (!esV) { b.a = ed.a; b.x = ed.x; }
+    else { b.f = ed.f; b.y = ed.y; }
+    render(); guardarHistorial();
+    seleccionar(b.id);
+    if (document.querySelector('.tab.activa') &&
+        document.querySelector('.tab.activa').dataset.tab === 'edif') pintarRecintos();
+    ok('Muro extendido: el área quedó partida en dos');
 }
 
 function dividirArea(dir, ed) {
@@ -2881,6 +2900,8 @@ async function iniciar() {
   on('btnSelDup', 'click', duplicarSeleccion);
   on('btnSelDel', 'click', () => { const id = selId; borrarBloque(id); seleccionar(null); });
   on('btnSelCerrar', 'click', () => seleccionar(null));
+  on('btnSelCerrarMuro', 'click', cerrarMuroSeleccionado);
+  on('btnSelRotar', 'click', () => { const id = selId; rotarBloque(id); if (id) seleccionar(id); });
   on('btnSelQuitarFoto', 'click', quitarFotoSeleccion);
   on('selFoto', 'change', e => {
     const f = e.target.files && e.target.files[0];
@@ -2929,6 +2950,10 @@ async function iniciar() {
     e.target.value = '';
   });
   on('btnBorrarTodo', 'click', () => borrarTodo(false));
+  on('imgParedesCompletas', 'change', () => {
+    sincronizarExtras();
+    if (!MODO_TEST) guardarLocal();
+  });
   on('libreSolape', 'change', e => {
     if (e.target.checked) aviso('Modo libre: los elementos pueden quedar encimados');
   });
@@ -3177,6 +3202,10 @@ function seleccionar(id) {
   $('selFoto').value = '';
   const gAlto = $('selAlto') && $('selAlto').closest('.form-group');
   if (gAlto) gAlto.style.display = esMarco ? 'none' : '';
+  if ($('btnSelCerrarMuro')) {
+    const puede = b.cat === 'muro' && estado.bloques.some(e => e.cat === 'edificacion' && dentroDe(b, e));
+    $('btnSelCerrarMuro').style.display = puede ? 'block' : 'none';
+  }
   const gColor = $('selColor') && $('selColor').closest('.form-group');
   if (gColor) gColor.style.display = esMarco ? 'none' : '';
   const gMarca = $('selMarca') && $('selMarca').closest('.form-group');
@@ -3271,7 +3300,8 @@ function borrarTodo(silencioso) {
       (hayFotos ? '\n\nTambién se quitarán las fotos de pared del 3D.' : ''))) return false;
   estado = { ancho: estado.ancho, fondo: estado.fondo, bloques: [], aberturas: [], recintos: [], version: 2,
     altoPared: estado.altoPared, cubierta: estado.cubierta,
-    alturaCumbrera: estado.alturaCumbrera, colorPared: estado.colorPared };
+    alturaCumbrera: estado.alturaCumbrera, colorPared: estado.colorPared,
+    imgParedesCompletas: !!estado.imgParedesCompletas };
   Object.keys(fotos).forEach(k => delete fotos[k]);
   guardarFotosLocal();
   limpiarFotosPared();

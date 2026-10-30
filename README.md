@@ -6,7 +6,7 @@ Funciona sin conexión, se instala en el celular o en el PC y **guarda el trabaj
 
 ![Vista 3D del taller](docs/v14-3d.png)
 
-> Versión **1.4.4** · Un solo HTML + CSS + JS, **sin dependencias** · Publicada en
+> Versión **1.4.5** · Un solo HTML + CSS + JS, **sin dependencias** · Publicada en
 > [GitHub Pages](https://jeydiaza-ui.github.io/simulador-planta/).
 
 ## ⬇️ Descargar
@@ -35,6 +35,13 @@ Funciona sin conexión, se instala en el celular o en el PC y **guarda el trabaj
   con los techos encendidos se ven los huecos reales en las paredes.
 - **Girar y mover siempre**: el botón **↻** gira el elemento aunque no quepa (avisa si queda encimado);
   al arrastrar, si no hay hueco libre se queda donde lo soltaste en vez de devolverse.
+- **Equipos pequeños sin estorbo**: los botones de girar/borrar ahora van fuera del bloque y, en
+  equipos muy pequeños, se ocultan; se usan los botones **↻ Girar 90°** y **Eliminar** de la ficha.
+- **Cerrar un muro**: si un muro no llega a las paredes, selecciónalo y pulsa
+  **↔ Cerrar muro hasta las paredes**; el área se parte y aparecen los dos recintos.
+- **Imagen 3D con frente translúcido o paredes completas**: por defecto el PNG sale con el frente
+  translúcido (sin medias paredes) para ver el interior y las puertas/ventanas dibujadas; en la etapa 5
+  puedes marcar **“paredes completas de las edificaciones”** para cerrar el frente.
 - **Trabajo por etapas**: 1 Taller · 2 Edificaciones · 3 Equipos · 4 Marcación · 5 Guardar.
 - **Guardado automático real** en el dispositivo (IndexedDB, con las fotos incluidas).
   Botones para **guardar un archivo** y **abrirlo en otro celular o PC**.

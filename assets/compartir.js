@@ -238,16 +238,45 @@
 
         /* ---------- muros del taller (recorte para ver el interior) ---------- */
         const colPared = doc.colorPared || '#e6e2da';
-        const muroBodega = (x0, z0, x1, z1, altoMuro, br) => {
+        const paredesCompletas = !!opts.paredesCompletas;
+        const aberturas = Array.isArray(doc.aberturas) ? doc.aberturas : [];
+        const muroBodega = (x0, z0, x1, z1, altoMuro, br, alpha) => {
             const pts = [P(x0, 0, z0), P(x0, altoMuro, z0), P(x1, altoMuro, z1), P(x1, 0, z1)];
+            ctx.save();
+            if (alpha) ctx.globalAlpha = alpha;
             poli(pts, sombra(colPared, br), 'rgba(0,0,0,.35)', 1.4);
+            ctx.restore();
+        };
+        // puertas / ventanas dibujadas sobre la pared
+        const dibujarAberturas = (dueno, x0, z0, x1, z1, altoMuro) => {
+            aberturas.filter(a => a && a.dueno === dueno).forEach(a => {
+                const ancho = Math.max(0.1, Number(a.ancho) || 1);
+                const altoA = Math.max(0.1, Number(a.alto) || 2.1);
+                const largo = (a.pared === 'arriba' || a.pared === 'abajo')
+                    ? Math.abs(x1 - x0) : Math.abs(z1 - z0);
+                const pos = Math.min(Math.max(0, Number(a.pos) || 0), Math.max(0, largo - ancho));
+                const y0 = Math.max(0, Number(a.desde) || 0);
+                const y1 = paredesCompletas ? Math.min(altoMuro, y0 + altoA) : y0 + altoA;
+                const fin = Math.max(y1, y0 + 0.2);
+                let xa = x0, xb = x0, za = z0, zb = z0;
+                if (a.pared === 'arriba') { xa = x0 + pos; xb = xa + ancho; za = zb = z0; }
+                else if (a.pared === 'abajo') { xa = x1 - pos - ancho; xb = xa + ancho; za = zb = z1; }
+                else if (a.pared === 'izq') { za = z0 + pos; zb = za + ancho; xa = xb = x0; }
+                else { za = z1 - pos - ancho; zb = za + ancho; xa = xb = x1; }
+                const col = a.tipo === 'puerta' ? 'rgba(139,69,19,.78)'
+                    : a.tipo === 'ventana' ? 'rgba(93,173,226,.62)' : 'rgba(44,62,80,.45)';
+                poli([P(xa, y0, za), P(xb, y0, zb), P(xb, fin, zb), P(xa, fin, za)],
+                     col, 'rgba(0,0,0,.55)', 1);
+            });
         };
         // lejanos completos
         muroBodega(0, 0, bw, 0, alto, 1.03);          // fondo (z=0)
         muroBodega(0, 0, 0, bd, alto, 0.94);          // izquierda (x=0)
-        // cercanos recortados a 0.45 m para no tapar
-        muroBodega(0, bd, bw, bd, 0.45, 0.99);
-        muroBodega(bw, 0, bw, bd, 0.45, 0.88);
+        // frente: translúcido para ver el interior, u opaco si se piden paredes completas
+        const alphaFrente = paredesCompletas ? 0 : 0.22;
+        muroBodega(0, bd, bw, bd, alto, 0.99, alphaFrente);
+        muroBodega(bw, 0, bw, bd, alto, 0.88, alphaFrente);
+        dibujarAberturas('bodega', 0, 0, bw, bd, alto);
 
         /* ---------- edificaciones y muros interiores ---------- */
         const eds = bloques.filter(b => b.cat === 'edificacion');
@@ -257,20 +286,30 @@
             // piso del cuarto
             poli([P(x, 0, z), P(x + w, 0, z), P(x + w, 0, z + d), P(x, 0, z + d)],
                  'rgba(52,152,219,.10)', 'rgba(27,79,114,.35)', 1);
-            // paredes: lejanas completas, cercanas recortadas
+            // paredes: lejanas siempre; las del frente solo si se piden completas
             muroBodega(x, z, x + w, z, h, 0.96);
             muroBodega(x, z, x, z + d, h, 0.88);
-            muroBodega(x, z + d, x + w, z + d, Math.min(h, 0.35), 0.92);
-            muroBodega(x + w, z, x + w, z + d, Math.min(h, 0.35), 0.82);
+            muroBodega(x, z + d, x + w, z + d, h, 0.92, alphaFrente);
+            muroBodega(x + w, z, x + w, z + d, h, 0.82, alphaFrente);
+            dibujarAberturas(ed.id, x, z, x + w, z + d, h);
         });
 
+        const dentroEdM = b => eds.some(ed => {
+            const ex = M(ed.x), ez = M(ed.y);
+            const cx = M(b.x) + Number(b.a) / 2, cz = M(b.y) + Number(b.f) / 2;
+            return cx > ex && cx < ex + Number(ed.a) && cz > ez && cz < ez + Number(ed.f);
+        });
         const muros = bloques.filter(b => b.cat === 'muro');
-        muros.forEach(m => caja(m, Math.max(0.3, m.h || 2.4), m.color || '#5D6D7E'));
+        muros.forEach(m => {
+            if (paredesCompletas && dentroEdM(m)) return;
+            caja(m, Math.max(0.3, m.h || 2.4), m.color || '#5D6D7E');
+        });
 
         /* ---------- equipos: orden por profundidad ---------- */
         const equipos = bloques.filter(b => b.cat === 'objeto');
         equipos.sort((a, b) => (a.x + a.y) - (b.x + b.y));
         equipos.forEach(b => {
+            if (paredesCompletas && dentroEdM(b)) return;
             const h = Math.max(0.1, Number(b.h) || 1);
             const img = b.foto ? imgs[b.foto] : null;
             if (b.estante) {
