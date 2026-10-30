@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Guía rápida · Simulador de Planta CTC Energy</title>
+<style>
+    @page { size: A4; margin: 14mm 14mm 16mm; }
+    * { box-sizing: border-box; }
+    body {
+        font-family: 'Segoe UI', Tahoma, sans-serif; color: #1B2A3A;
+        margin: 0; font-size: 11pt; line-height: 1.45;
+    }
+    .page { page-break-after: always; display: flex; flex-direction: column; min-height: 258mm; }
+    .page:last-child { page-break-after: auto; }
+    .brand { display: flex; align-items: center; gap: 10px; margin-bottom: 6mm; }
+    .brand img { width: 16mm; height: 16mm; border-radius: 4mm; }
+    .brand b { font-size: 13pt; letter-spacing: .5px; }
+    h1 { font-size: 26pt; margin: 0 0 2mm; line-height: 1.1; }
+    h2 { font-size: 15pt; margin: 6mm 0 2mm; border-bottom: 2px solid #FFC300; padding-bottom: 1mm; }
+    h3 { font-size: 12pt; margin: 4mm 0 1mm; }
+    p { margin: 0 0 2.5mm; }
+    .sub { color: #566573; font-size: 12pt; margin-bottom: 6mm; }
+    .hero img { width: 100%; max-height: 118mm; object-fit: contain; border: 1px solid #cfd8dc; border-radius: 3mm; }
+    .foot { margin-top: auto; font-size: 8pt; color: #7F8C8D;
+            border-top: 1px solid #ddd; padding-top: 2mm; display: flex; justify-content: space-between; }
+    .shot { height: auto; max-height: 61mm; width: auto; max-width: 100%; display: block; margin: 2mm auto 3mm; border: 1px solid #cfd8dc; border-radius: 2mm; }
+    .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 5mm; }
+    .card { background: #F4F7FA; border: 1px solid #DDE3E9; border-radius: 2mm; padding: 3mm; }
+    .card h3 { margin-top: 0; }
+    ul, ol { margin: 0 0 3mm 5mm; padding: 0; }
+    li { margin-bottom: 1.4mm; }
+    .kbd { background: #1B2A3A; color: #fff; border-radius: 1mm; padding: 0 1.5mm; font-size: 9pt; }
+    .tag { display: inline-block; background: #FFC300; color: #1B2A3A; font-weight: 700;
+           border-radius: 1mm; padding: 0 2mm; font-size: 9pt; }
+    table { width: 100%; border-collapse: collapse; margin: 2mm 0 4mm; font-size: 9.5pt; }
+    th, td { border: 1px solid #cfd8dc; padding: 2mm; text-align: left; vertical-align: top; }
+    th { background: #EAF2F8; }
+    .note { background: #FFF9E6; border-left: 3px solid #FFC300; padding: 2mm 3mm; margin: 3mm 0; font-size: 10pt; }
+    .tiny { font-size: 9pt; color: #566573; }
+    .cover { text-align: left; padding-top: 4mm; }
+    .cover .hero { margin-top: 8mm; }
+</style>
+</head>
+<body>
+
+<!-- ============================ PORTADA ============================ -->
+<div class="page cover">
+    <div class="brand">
+        <img src="../icons/icon-192.png" alt="CTC">
+        <b>CTC ENERGY</b>
+    </div>
+    <h1>Simulador de Planta</h1>
+    <p class="sub">Guía rápida para dibujar el taller por etapas, guardar el trabajo,
+        compartirlo en 3D por WhatsApp e imprimir el plano en PDF.</p>
+    <p><span class="tag">Versión 1.4</span> &nbsp; <span class="tiny">Octubre de 2026 · 5 etapas · 44 pruebas automáticas</span></p>
+    <div class="hero"><img src="v14-3d.png" alt="Vista 3D del taller"></div>
+    <div class="foot"><span>Simulador de Planta CTC Energy · Guía rápida</span><span>1</span></div>
+</div>
+
+<!-- ============================ ANTES DE EMPEZAR ============================ -->
+<div class="page">
+    <h2>Antes de empezar</h2>
+    <h3>¿Dónde abro la app?</h3>
+    <p>En el navegador del celular o del PC: <b>jeydiaza-ui.github.io/simulador-planta</b>.
+        También puedes abrir el archivo <b>index.html</b> con doble clic.</p>
+
+    <h3>Instalarla como app (recomendado en el celular)</h3>
+    <ul>
+        <li><b>Android / Chrome:</b> menú ⋮ → <i>Instalar aplicación</i>.</li>
+        <li><b>iPhone / Safari:</b> botón Compartir → <i>Agregar a pantalla de inicio</i>.</li>
+    </ul>
+    <p class="tiny">Después de la primera carga funciona sin internet.</p>
+
+    <h3>¿Cómo se guarda?</h3>
+    <p>La app <b>guarda sola</b> en el dispositivo mientras trabajas. En la etapa
+        <b>5 · Guardar</b> ves la hora del último guardado. Para pasar el proyecto a otro
+        equipo usa <b>⬇ Archivo (.json)</b> y luego <b>⬆ Abrir archivo</b>.</p>
+    <div class="note">Consejo: si vas a hacer cambios grandes, descarga primero el archivo
+        <b>.json</b> como respaldo. Incluye las fotos de los equipos.</div>
+
+    <h3>Controles básicos</h3>
+    <table>
+        <tr><th>Acción</th><th>Cómo</th></tr>
+        <tr><td>Mover un elemento</td><td>Mantén pulsado y arrastra (ratón o dedo).</td></tr>
+        <tr><td>Seleccionar / editar</td><td>Toca el elemento: arriba del panel aparece su ficha.</td></tr>
+        <tr><td>Girar 90°</td><td>Botón <b>↻</b> del elemento.</td></tr>
+        <tr><td>Borrar</td><td>Botón <b>×</b> del elemento o <b>Eliminar</b> en la ficha.</td></tr>
+        <tr><td>Deshacer</td><td><span class="kbd">Ctrl</span> + <span class="kbd">Z</span> o el botón <b>↩️</b>.</td></tr>
+        <tr><td>Hacer zoom</td><td>Botones <b>−</b> / <b>+</b> abajo a la derecha.</td></tr>
+    </table>
+    <div class="foot"><span>Antes de empezar</span><span>2</span></div>
+</div>
+
+<!-- ============================ ETAPA 1 Y 2 ============================ -->
+<div class="page">
+    <h2>Etapa 1 · El taller</h2>
+    <ol>
+        <li>En <b>1 · Taller</b> escribe el <b>ancho</b> y el <b>fondo</b> reales en metros.</li>
+        <li>Indica el <b>alto de paredes</b>, el tipo de <b>cubierta</b> (plana o 2 aguas) y la altura de cumbrera.</li>
+        <li>Pulsa <b>Generar Lienzo</b>. El plano aparece a escala (1 m = 20 px).</li>
+        <li>En <b>Puertas y ventanas</b> agrega las del galpón: elige pared, tipo y medidas; luego arrástralas en el plano.</li>
+    </ol>
+    <img class="shot" src="v14-taller.png" alt="Etapa 1">
+
+    <h2>Etapa 2 · Edificaciones internas</h2>
+    <ol>
+        <li>En <b>2 · Edificaciones</b> elige <b>Edificación</b>, ponle nombre y medidas, y ubícala.</li>
+        <li>En <b>Trabajar dentro de</b> selecciona ese cuarto.</li>
+        <li>Agrega <b>Muros</b> (el ancho se propone igual al del cuarto), <b>puertas/ventanas</b> y <b>equipos</b>.</li>
+        <li>En <b>Recintos y áreas</b> escribe el nombre de cada tramo. Puedes mover el muro: el nombre se conserva.</li>
+        <li>Si mueves la edificación, <b>todo su contenido se mueve con ella</b>.</li>
+    </ol>
+    <img class="shot" src="v14-edificaciones.png" alt="Etapa 2">
+    <div class="foot"><span>Etapas 1 y 2</span><span>3</span></div>
+</div>
+
+<!-- ============================ ETAPA 3 Y 4 ============================ -->
+<div class="page">
+    <h2>Etapa 3 · Equipos</h2>
+    <ul>
+        <li>Arrastra un objeto de la <b>biblioteca</b> al plano, o haz clic para cargarlo con sus medidas.</li>
+        <li>Para crear tu propio equipo: abre <b>＋ Crear equipo con mi propia imagen</b>, escribe nombre,
+            ancho, fondo y alto, y elige una <b>foto o render</b>. Queda guardado en tu biblioteca.</li>
+        <li>Si elegiste una edificación en <b>Trabajar dentro de</b>, el equipo se coloca dentro de ella.</li>
+        <li>Puedes ajustar medidas, color, stand, estante y foto en la ficha del elemento.</li>
+    </ul>
+    <img class="shot" src="v14-equipos.png" alt="Etapa 3">
+
+    <h2>Etapa 4 · Marcación</h2>
+    <p>Hay dos formas:</p>
+    <ul>
+        <li><b>A · Franja sobre el equipo:</b> elige color, ancho (10 a 30 cm) y forma
+            (perímetro, U, L, frente o lados) y pulsa <b>Aplicar</b>.</li>
+        <li><b>B · Marco estirable:</b> selecciona un equipo o edificación y pulsa
+            <b>Crear marco</b>. Arrastra los <b>8 tiradores</b> para estirarlo: las medidas se
+            actualizan solas. También puedes escribir ancho, fondo y franja y pulsar
+            <b>Aplicar medidas al marco</b>.</li>
+    </ul>
+    <img class="shot" src="v14-marcacion.png" alt="Etapa 4">
+    <p class="tiny">El marco no ocupa área ni estorba al mover equipos; sale en el PDF y en la imagen 3D.</p>
+    <div class="foot"><span>Etapas 3 y 4</span><span>4</span></div>
+</div>
+
+<!-- ============================ ETAPA 5 ============================ -->
+<div class="page">
+    <h2>Etapa 5 · Guardar, compartir e imprimir</h2>
+    <img class="shot" src="v14-guardar.png" alt="Etapa 5">
+    <div class="cols">
+        <div class="card">
+            <h3>Guardar</h3>
+            <ul>
+                <li><b>Guardar ahora</b>: guarda en el dispositivo.</li>
+                <li><b>Archivo (.json)</b>: descarga el proyecto con fotos.</li>
+                <li><b>Abrir archivo</b>: carga un proyecto guardado.</li>
+                <li><b>Enviar proyecto</b>: compártelo por WhatsApp.</li>
+            </ul>
+        </div>
+        <div class="card">
+            <h3>Compartir el 3D</h3>
+            <ul>
+                <li><b>Ver en 3D</b>: gira con el dedo y acerca con la rueda/pellizco.</li>
+                <li><b>Compartir 3D</b>: crea un PNG y abre WhatsApp.</li>
+                <li><b>PNG 3D</b>: solo descarga la imagen.</li>
+            </ul>
+        </div>
+    </div>
+
+    <h3>Imprimir el plano en PDF</h3>
+    <ol>
+        <li>Pulsa <b>🖨️ Imprimir / PDF 2D</b>.</li>
+        <li>En el diálogo elige la impresora <b>Guardar como PDF</b>.</li>
+        <li>El PDF sale con el plano a escala y las tablas: convenciones, áreas, muros,
+            marcos, objetos, edificaciones, recintos, puertas/ventanas y total ocupado.</li>
+    </ol>
+    <div class="note">Si el plano sale muy pequeño, revisa que el papel sea <b>A4 vertical</b>
+        y los márgenes <b>predeterminados</b>. La app calcula la escala para que quepa.</div>
+
+    <h3>Atajos útiles</h3>
+    <table>
+        <tr><th>Tecla</th><th>Acción</th></tr>
+        <tr><td><span class="kbd">Ctrl</span> + <span class="kbd">Z</span></td><td>Deshacer</td></tr>
+        <tr><td><span class="kbd">Ctrl</span> + <span class="kbd">S</span></td><td>Guardar ahora</td></tr>
+        <tr><td><span class="kbd">Esc</span></td><td>Cerrar 3D, cancelar colocación o cerrar la guía</td></tr>
+    </table>
+    <div class="foot"><span>Etapa 5 · Guardar y compartir</span><span>5</span></div>
+</div>
+
+<!-- ============================ AYUDA ============================ -->
+<div class="page">
+    <h2>Preguntas frecuentes</h2>
+    <h3>¿Se pierde el trabajo si cierro el navegador?</h3>
+    <p>No: se guarda solo en el dispositivo. Si borras los datos del navegador, se pierde;
+        por eso conviene descargar el archivo <b>.json</b> de vez en cuando.</p>
+
+    <h3>¿Cómo paso el proyecto del celular al PC?</h3>
+    <p>En el celular: <b>Archivo (.json)</b> o <b>Enviar proyecto</b> y mándalo por WhatsApp/correo.
+        En el PC: <b>Abrir archivo</b>.</p>
+
+    <h3>No cabe un equipo dentro de una edificación</h3>
+    <p>Agranda la edificación o quita elementos. La app avisa <i>«No cabe dentro de…»</i> y no
+        coloca nada a medias.</p>
+
+    <h3>Quiero mover un elemento encima de otro</h3>
+    <p>Activa <b>Mover libre</b> en la etapa 5. Por defecto la app evita solapes.</p>
+
+    <h3>El botón Compartir no abre WhatsApp</h3>
+    <p>En PC algunos navegadores no tienen hoja de compartir: la app descarga el PNG y abre
+        WhatsApp Web. Adjunta la imagen descargada.</p>
+
+    <h3>¿Puedo seguir usando la versión anterior?</h3>
+    <p>Sí: el archivo <b>.json</b> antiguo se puede abrir; la app adapta los datos.</p>
+
+    <h3>Créditos</h3>
+    <p class="tiny">Simulador de Planta CTC Energy · v1.4 · Hecho para el taller de CTC Energy.
+        Funciona sin conexión y no envía datos a ningún servidor.</p>
+    <div class="foot"><span>Ayuda</span><span>6</span></div>
+</div>
+
+</body>
+</html>

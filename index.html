@@ -3,31 +3,81 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <meta name="description" content="Simulador de distribución en planta (layout) para talleres y bodegas: dibuja el plano a escala, ubica equipos, puertas y ventanas, y míralo en 3D.">
+    <meta name="description" content="Simulador de distribución en planta para talleres y bodegas: dibuja a escala, divide edificaciones, ubica equipos, míralo en 3D y comparte.">
     <meta name="theme-color" content="#1B2A3A">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Planta CTC">
     <meta property="og:title" content="Simulador de Planta CTC Energy">
-    <meta property="og:description" content="Dibuja tu taller a escala, ubica equipos y visualízalo en 3D. Funciona sin conexión.">
+    <meta property="og:description" content="Dibuja tu taller a escala por etapas, ubica equipos y compártelo en 3D. Guarda en tu celular o PC.">
     <meta property="og:type" content="website">
     <title>Simulador de Planta CTC Energy</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%231B2A3A'/%3E%3Cpath d='M14 46V26l10 6v-6l10 6v-6l10 6v14z' fill='%23FFC300'/%3E%3C/svg%3E">
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
     <link rel="manifest" href="manifest.webmanifest">
     <link rel="stylesheet" href="assets/styles.css">
+    <script>
+        /* registra fallos para poder diagnosticar (no interrumpe la app) */
+        window.__errores = [];
+        window.addEventListener('error', function (e) {
+            window.__errores.push('error: ' + e.message + ' @ ' + (e.filename || '') + ':' + e.lineno);
+        });
+        window.addEventListener('unhandledrejection', function (e) {
+            var r = e.reason;
+            window.__errores.push('promesa: ' + ((r && r.message) || r));
+        });
+    </script>
 </head>
 <body>
-    <button id="btn-panel" class="btn-panel" aria-controls="panel" aria-expanded="false" title="Mostrar/ocultar panel">☰</button>
+    <button id="btn-panel" class="btn-panel" aria-controls="panel" aria-expanded="false" title="Mostrar / ocultar panel">☰</button>
 
     <aside id="panel">
         <div class="marcas" role="tablist">
-            <button type="button" class="marca activa" data-tab="bodega">1 · Bodega</button>
+            <button type="button" class="marca activa" data-tab="taller">1 · Taller</button>
             <button type="button" class="marca" data-tab="edif">2 · Edificaciones</button>
             <button type="button" class="marca" data-tab="equipos">3 · Equipos</button>
             <button type="button" class="marca" data-tab="marcacion">4 · Marcación</button>
-            <button type="button" class="marca" data-tab="salida">5 · Salida</button>
+            <button type="button" class="marca" data-tab="salida">5 · Guardar</button>
         </div>
 
-        <!-- ===================== 1 · BODEGA ===================== -->
-        <section class="tab activa" data-tab="bodega">
-            <h2>1. La bodega</h2>
+        <!-- ===================== ELEMENTO SELECCIONADO ===================== -->
+        <div id="selBox" style="display:none">
+            <h3 class="sub">✏️ Elemento seleccionado</h3>
+            <p id="selInfo" class="ayuda"></p>
+            <div class="form-group"><label for="selNombre">Nombre</label>
+                <input type="text" id="selNombre" maxlength="60"></div>
+            <div class="form-group fila-campos">
+                <div><label for="selAncho">Ancho / largo (m)</label><input type="number" id="selAncho" step="0.05" min="0.3"></div>
+                <div><label for="selFondo">Fondo / espesor (m)</label><input type="number" id="selFondo" step="0.05" min="0.3"></div>
+            </div>
+            <div class="form-group fila-campos">
+                <div><label for="selAlto">Alto (m)</label><input type="number" id="selAlto" step="0.1" min="0.1"></div>
+                <div><label for="selColor">Color</label><input type="color" id="selColor"></div>
+            </div>
+            <div class="form-group">
+                <label class="chk"><input type="checkbox" id="selMarca"> Con marcación amarilla</label>
+            </div>
+            <div class="form-group">
+                <label for="selFoto">Foto / imagen 3D</label>
+                <div class="fila-archivo">
+                    <input type="file" id="selFoto" accept="image/*">
+                    <button type="button" id="btnSelQuitarFoto" class="btn-quitar" title="Quitar la foto">✕</button>
+                </div>
+            </div>
+            <button id="btnSelAplicar" class="btn-primario">Aplicar cambios</button>
+            <div class="fila-campos">
+                <button id="btnSelDup" class="btn-sec">Duplicar</button>
+                <button id="btnSelDel" class="btn-borrar">Eliminar</button>
+            </div>
+            <button id="btnSelCerrar" class="btn-sec">Cerrar selección</button>
+            <hr>
+        </div>
+
+        <!-- ===================== 1 · TALLER ===================== -->
+        <section class="tab activa" data-tab="taller">
+            <h2>1. El taller</h2>
+            <p class="ayuda">Mide el galpón completo. Con estas medidas se crea el lienzo a escala
+                (1 m = 20 px). Puedes cambiarlas cuando quieras con «Generar Lienzo».</p>
             <div class="form-group fila-campos">
                 <div><label for="anchoBodega">Ancho (m)</label><input type="number" id="anchoBodega" value="10.13" step="0.05" min="1"></div>
                 <div><label for="fondoBodega">Fondo (m)</label><input type="number" id="fondoBodega" value="20.45" step="0.05" min="1"></div>
@@ -53,39 +103,73 @@
                     Mostrar nombres en el plano</label>
             </div>
             <div id="totales" aria-live="polite">
-                <p><span>Área Total:</span> <span id="txtTotal">0 m²</span></p>
-                <p><span>Área Ocupada:</span> <span id="txtOcupada">0 m²</span></p>
-                <p class="alerta"><span>Área Libre:</span> <span id="txtLibre">0 m²</span></p>
+                <p><span>Área total:</span> <span id="txtTotal">0 m²</span></p>
+                <p><span>Área ocupada:</span> <span id="txtOcupada">0 m²</span></p>
+                <p class="alerta"><span>Área libre:</span> <span id="txtLibre">0 m²</span></p>
             </div>
 
             <div id="hostAbBodega"></div>
-
+            <p class="ayuda">Se agregan a las paredes exteriores. Después las arrastras en el plano
+                o las mueves con la barra de posición.</p>
         </section>
 
         <!-- ===================== 2 · EDIFICACIONES ===================== -->
         <section class="tab" data-tab="edif">
             <h2>2. Edificaciones internas</h2>
-            <p class="ayuda">Oficinas, baños, almacén, subáreas… con medidas propias. Elige el tipo y ubícalo dentro de la bodega.</p>
+            <p class="ayuda">Oficinas, baños, almacén, cuarto eléctrico… Primero crea el cuarto;
+                después elige «Trabajar dentro de» y agrega sus muros, puertas y equipos.
+                Cada tramo que dejan los muros aparece con su nombre y su área.</p>
             <div id="hostEdif"></div>
+
+            <h2>Edificaciones del plano</h2>
+            <div id="listaEdif" class="lista-edif"></div>
+
+            <h2>Puertas y ventanas</h2>
             <div id="hostAbEdif"></div>
+
             <h2>Recintos y áreas</h2>
-            <p class="ayuda">Cada tramo que dejan los muros divisorios, con su nombre y su área.</p>
+            <p class="ayuda">Escribe el nombre de cada tramo (Oficina, Baño, Depósito…).
+                El nombre se conserva aunque muevas el muro.</p>
             <div id="listaRecintos" class="tabla-recintos"></div>
         </section>
 
         <!-- ===================== 3 · EQUIPOS ===================== -->
         <section class="tab" data-tab="equipos">
             <h2>3. Equipos</h2>
-            <p class="ayuda">Arrastra un objeto al plano, o haz clic para cargarlo con sus medidas y ajustarlas.</p>
+            <p class="ayuda">Arrastra un objeto al plano, o haz clic para cargarlo con sus medidas.
+                Si elegiste «Trabajar dentro de» una edificación, el equipo se coloca allí.</p>
             <div id="bib" class="bib"></div>
             <button id="btnBibAdd" class="btn-sec">＋ Agregar el seleccionado a la biblioteca</button>
+
+            <details class="bib-nuevo">
+                <summary>＋ Crear equipo con mi propia imagen</summary>
+                <div class="form-group"><label for="bibNombre">Nombre</label>
+                    <input type="text" id="bibNombre" maxlength="40" placeholder="Ej. Transformador seco"></div>
+                <div class="form-group fila-campos">
+                    <div><label for="bibAncho">Ancho (m)</label><input type="number" id="bibAncho" step="0.05" min="0.1" value="1"></div>
+                    <div><label for="bibFondo">Fondo (m)</label><input type="number" id="bibFondo" step="0.05" min="0.1" value="1"></div>
+                    <div><label for="bibAlto">Alto (m)</label><input type="number" id="bibAlto" step="0.05" min="0.1" value="1"></div>
+                </div>
+                <div class="form-group"><label for="bibFoto">Imagen (foto o render)</label>
+                    <input type="file" id="bibFoto" accept="image/*"></div>
+                <label class="chk"><input type="checkbox" id="bibRecorte" checked>
+                    Recortar el fondo (recomendado con fondo liso)</label>
+                <button id="btnBibNuevo" class="btn-primario">Guardar en la biblioteca</button>
+                <p class="ayuda">La imagen queda guardada en este dispositivo y se usa en 2D y 3D.
+                    Puedes borrar objetos con la ✕ al pasar el ratón.</p>
+            </details>
+            <button id="btnBibRestaurar" class="btn-sec">Restaurar biblioteca original</button>
+
             <div id="hostEq"></div>
         </section>
 
         <!-- ===================== 4 · MARCACIÓN ===================== -->
         <section class="tab" data-tab="marcacion">
             <h2>4. Marcación de áreas</h2>
-            <p class="ayuda">Elige color, ancho y forma de la franja y aplícala al elemento seleccionado o a todos los equipos.</p>
+            <p class="ayuda">Dos formas de demarcar: la franja pegada al equipo (color y forma)
+                o un marco independiente que puedes estirar con el ratón.</p>
+
+            <h3 class="sub">A · Franja sobre el equipo</h3>
             <div class="form-group">
                 <label for="marcaColor">Color de la marcación</label>
                 <select id="marcaColor">
@@ -119,46 +203,53 @@
             <div id="vistaMarca" class="vista-marca"></div>
             <button id="btnMarcaSel" class="btn-primario">Aplicar al seleccionado</button>
             <button id="btnMarcaTodos" class="btn-sec">Aplicar a todos los equipos</button>
-            <p class="ayuda">La franja se dibuja a escala real (20 cm = 4 px) y sale también en el PDF.</p>
+
+            <h3 class="sub" style="margin-top:16px">B · Marco estirable (alrededor del equipo)</h3>
+            <p class="ayuda">Selecciona un equipo o una edificación y pulsa «Crear marco».
+                Luego estíralo con los 8 tiradores: las medidas se actualizan solas.</p>
+            <div class="form-group fila-campos">
+                <div><label for="marcoAncho">Ancho del marco (m)</label><input type="number" id="marcoAncho" step="0.05" min="0.3" value="2"></div>
+                <div><label for="marcoFondo">Fondo del marco (m)</label><input type="number" id="marcoFondo" step="0.05" min="0.3" value="1.5"></div>
+                <div><label for="marcoFranja">Franja (m)</label><input type="number" id="marcoFranja" step="0.01" min="0.05" value="0.15"></div>
+            </div>
+            <button id="btnMarcoCrear" class="btn-primario">Crear marco en el seleccionado</button>
+            <button id="btnMarcoAplicar" class="btn-sec">Aplicar medidas al marco</button>
+            <p class="ayuda">El marco no ocupa área ni estorba al mover equipos. Sale en el PDF
+                y en la imagen 3D.</p>
         </section>
 
-        <!-- ===================== 5 · SALIDA ===================== -->
+        <!-- ===================== 5 · GUARDAR / SALIR ===================== -->
         <section class="tab" data-tab="salida">
-            <h2>5. Guardar y salir</h2>
-            <div id="selBox" style="display:none">
-                <h3 class="sub">Elemento seleccionado</h3>
-                <p id="selInfo" class="ayuda"></p>
-                <div class="form-group"><label for="selNombre">Nombre</label><input type="text" id="selNombre" maxlength="60"></div>
-                <div class="form-group fila-campos">
-                    <div><label for="selAncho">Ancho / largo (m)</label><input type="number" id="selAncho" step="0.05" min="0.05"></div>
-                    <div><label for="selFondo">Fondo / espesor (m)</label><input type="number" id="selFondo" step="0.05" min="0.05"></div>
-                </div>
-                <div class="form-group fila-campos">
-                    <div><label for="selAlto">Alto (m)</label><input type="number" id="selAlto" step="0.1" min="0.1"></div>
-                    <div><label for="selColor">Color</label><input type="color" id="selColor"></div>
-                </div>
-                <div class="form-group">
-                    <label class="chk"><input type="checkbox" id="selMarca"> Con marcación</label>
-                </div>
-                <div class="form-group">
-                    <label for="selFoto">Foto / imagen 3D</label>
-                    <div class="fila-archivo">
-                        <input type="file" id="selFoto" accept="image/*">
-                        <button type="button" id="btnSelQuitarFoto" class="btn-quitar" title="Quitar la foto">✕</button>
-                    </div>
-                </div>
-                <button id="btnSelAplicar" class="btn-primario">Aplicar cambios</button>
-                <div class="fila-campos">
-                    <button id="btnSelDup" class="btn-sec">Duplicar</button>
-                    <button id="btnSelDel" class="btn-borrar">Eliminar</button>
-                </div>
-                <button id="btnSelCerrar" class="btn-sec">Cerrar selección</button>
-                <hr>
+            <h2>5. Guardar y compartir</h2>
+            <p class="ayuda">El proyecto se guarda solo en este dispositivo mientras trabajas.
+                Usa «Archivo» para llevarlo a otro celular o PC.</p>
+            <div class="form-group"><label for="nombreProyecto">Nombre del proyecto</label>
+                <input type="text" id="nombreProyecto" maxlength="60" value="Taller CTC Energy"></div>
+            <div id="guardadoInfo" class="guardado" aria-live="polite">Listo</div>
+
+            <button id="btnGuardar" class="btn-primario">💾 Guardar ahora</button>
+            <div class="fila-campos">
+                <button id="btnArchivo" class="btn-sec">⬇ Archivo (.json)</button>
+                <button id="btnImportar" class="btn-sec">⬆ Abrir archivo</button>
             </div>
+            <button id="btnCompartirProy" class="btn-sec">📤 Enviar proyecto (WhatsApp)</button>
+            <button id="btnNuevo" class="btn-sec">🗋 Proyecto nuevo</button>
+
+            <hr>
             <button id="btn3D" class="btn-3d">🧊 Ver en 3D</button>
-            <button id="btnImprimir" class="btn-print">🖨️ Imprimir / PDF</button>
+            <div class="fila-campos">
+                <button id="btnCompartir3D" class="btn-wa">📤 Compartir 3D</button>
+                <button id="btnPng3D" class="btn-sec">⬇ PNG 3D</button>
+            </div>
+            <button id="btnImprimir" class="btn-print">🖨️ Imprimir / PDF 2D</button>
+            <p class="ayuda">En el celular: elige «Compartir 3D» y luego WhatsApp.
+                Para el PDF, elige «Guardar como PDF» en la impresión.</p>
+
             <div class="form-group">
                 <label class="chk"><input type="checkbox" id="verTechos"> Mostrar techos en 3D (apagado = se ve el interior)</label>
+            </div>
+            <div class="form-group">
+                <label class="chk"><input type="checkbox" id="libreSolape"> Mover libre (permite encimarse)</label>
             </div>
             <div class="form-group">
                 <label for="ajustePared">Ajuste de fotos de pared</label>
@@ -182,15 +273,16 @@
             <hr>
             <div class="fila-campos">
                 <button id="btnExportar" class="btn-sec">⬇ JSON</button>
-                <button id="btnImportar" class="btn-sec">⬆ Abrir</button>
                 <button id="btnAgregarJson" class="btn-sec">＋ Sumar</button>
             </div>
             <input type="file" id="fileImportar" accept="application/json,.json" hidden>
-            <button id="btnBorrarTodo" class="btn-borrar">Borrar todo</button>
-            <p class="pie">v1.3 · Los datos se guardan en este navegador.</p>
+            <button id="btnBorrarTodo" class="btn-borrar">Borrar todo el plano</button>
+            <button id="btnAyuda" class="btn-sec">❔ Guía rápida</button>
+            <p class="pie">v1.4 · Funciona sin conexión · Los datos quedan en tu dispositivo.</p>
         </section>
 
-<div id="bloqueAb">
+        <!-- ===================== FORMULARIO COMPARTIDO ===================== -->
+        <div id="bloqueAb">
             <h2>Puertas y ventanas</h2>
             <div class="form-group">
                 <label for="abDueno">En</label>
@@ -217,7 +309,6 @@
             <div id="listaAb" class="lista-ab"></div>
         </div>
 
-        <!-- ===================== FORMULARIO COMPARTIDO ===================== -->
         <div id="formElemento" style="display:none">
             <div class="tipos">
                 <button type="button" class="tipo activo" data-cat="objeto">Equipo<small>EQ</small></button>
@@ -232,6 +323,13 @@
                 <option value="libre">Espacio libre: pasillo, zona peatonal (MA)</option>
             </select>
             <p id="tipoAyuda" class="ayuda"></p>
+
+            <div class="form-group" id="fDentro">
+                <label for="dentroDe">Trabajar dentro de</label>
+                <select id="dentroDe"><option value="">— En el plano general —</option></select>
+                <p class="ayuda" style="margin:4px 0 0">Si eliges una edificación, el equipo o muro
+                    nuevo se coloca dentro de ella.</p>
+            </div>
 
             <div class="form-group" id="fNombre">
                 <label for="nombreBloque" id="lblNombre">Nombre del equipo</label>
@@ -340,14 +438,44 @@
     <div id="vista3d" role="dialog" aria-modal="true" aria-label="Vista 3D">
         <div id="barra3d">
             <button id="btnCerrar3D">✕ Cerrar 3D</button>
+            <button id="btnCompartir3DView">📤 Compartir PNG</button>
+            <button id="btnPng3DView">⬇ Descargar PNG</button>
             <span class="ayuda3d">Arrastra para girar · rueda para acercar</span>
         </div>
         <div id="escena3d"><div id="mundo3d"></div></div>
     </div>
 
+    <div id="ayudaModal" role="dialog" aria-modal="true" aria-labelledby="ayudaTitulo">
+        <div class="ayuda-caja">
+            <h2 id="ayudaTitulo">Guía rápida</h2>
+            <ol>
+                <li><b>1 · Taller:</b> escribe ancho y fondo reales, el alto de las paredes y el tipo
+                    de techo. Pulsa <b>Generar Lienzo</b>.</li>
+                <li><b>Puertas y ventanas:</b> en el mismo módulo agrega las del galpón. Se pueden
+                    arrastrar en el plano.</li>
+                <li><b>2 · Edificaciones:</b> crea un cuarto (oficina, baño, almacén). Luego elige
+                    <b>Trabajar dentro de</b> ese cuarto y agrega sus muros (usa «Muro» con el largo
+                    del cuarto), puertas, ventanas y equipos.</li>
+                <li><b>Recintos:</b> cada tramo aparece con su área. Escribe su nombre; se conserva
+                    aunque muevas el muro.</li>
+                <li><b>3 · Equipos:</b> arrastra de la biblioteca o crea tu propio equipo con foto.
+                    Ajusta ancho, fondo y alto.</li>
+                <li><b>4 · Marcación:</b> elige color, ancho y forma, o crea un <b>marco estirable</b>
+                    y arrastra sus tiradores.</li>
+                <li><b>5 · Guardar:</b> se guarda solo en tu celular/PC. Usa <b>Archivo</b> para pasar
+                    el proyecto a otro dispositivo y <b>Compartir 3D</b> para enviarlo por WhatsApp.</li>
+            </ol>
+            <p class="ayuda">Consejos: mantén pulsado y arrastra para mover. Ctrl+Z deshace.
+                El PDF sale con las tablas de convenciones y áreas.</p>
+            <button id="btnAyudaCerrar" class="btn-primario">Entendido</button>
+            <button id="btnAyudaCerrar2" class="btn-sec">Cerrar</button>
+        </div>
+    </div>
+
     <div id="avisos" aria-live="polite"></div>
     <div id="selftest" hidden></div>
 
+    <script src="assets/compartir.js"></script>
     <script src="assets/biblioteca.js"></script>
     <script src="assets/app.js"></script>
 </body>

@@ -1,20 +1,19 @@
 {
   "name": "Simulador de Planta CTC Energy",
-  "short_name": "Simulador CTC",
-  "description": "Dibuja a escala la distribución de tu taller o bodega, ubica equipos y visualízalo en 3D.",
-  "start_url": "./index.html",
+  "short_name": "Planta CTC",
+  "description": "Dibuja a escala la distribución de tu taller o bodega, divide edificaciones internas, ubica equipos y compártelo en 2D y 3D.",
+  "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "background_color": "#e0e0e0",
   "theme_color": "#1B2A3A",
   "lang": "es",
+  "dir": "ltr",
   "orientation": "any",
+  "categories": ["productivity", "utilities"],
   "icons": [
-    {
-      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='96' fill='%231B2A3A'/%3E%3Cpath d='M112 368V208l80 48v-48l80 48v-48l80 48v112z' fill='%23FFC300'/%3E%3C/svg%3E",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any"
-    }
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }
