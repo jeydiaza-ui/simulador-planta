@@ -475,6 +475,7 @@ function render() {
   bod.querySelectorAll('.bloque-wrapper').forEach(e => e.remove());
   estado.bloques.forEach(b => bod.appendChild(crearElBloque(b)));
   actualizarTotales();
+  dibujarRecintos();
 }
 
 function crearElBloque(b) {
@@ -1269,7 +1270,8 @@ function guardarLocal() {
   try {
     localStorage.setItem(LS_KEY, JSON.stringify({
       ancho: estado.ancho, fondo: estado.fondo,
-      bloques: estado.bloques, aberturas: estado.aberturas
+      bloques: estado.bloques, aberturas: estado.aberturas,
+      recintos: estado.recintos || {}
     }));
   } catch (_) { /* cuota llena o modo privado: se ignora */ }
 }
@@ -1280,7 +1282,7 @@ function cargarLocal() {
     if (!raw) return false;
     const d = JSON.parse(raw);
     if (!d || !d.ancho) return false;
-    estado = { ancho: d.ancho, fondo: d.fondo, bloques: d.bloques || [], aberturas: d.aberturas || [] };
+    estado = { ancho: d.ancho, fondo: d.fondo, bloques: d.bloques || [], aberturas: d.aberturas || [], recintos: d.recintos || {} };
     return true;
   } catch (_) { return false; }
 }
@@ -1301,7 +1303,7 @@ function aplicarEstado() {
 }
 
 function exportarJSON() {
-  const data = { version: 1, ancho: estado.ancho, fondo: estado.fondo, bloques: estado.bloques, aberturas: estado.aberturas, fotos };
+  const data = { version: 1, ancho: estado.ancho, fondo: estado.fondo, bloques: estado.bloques, aberturas: estado.aberturas, recintos: estado.recintos || {}, fotos };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -1327,7 +1329,7 @@ function aplicarImportacion(d, modo) {
     ok(n + ' elemento(s) agregado(s) al plano');
     return n;
   }
-  estado = { ancho: d.ancho, fondo: d.fondo, bloques: d.bloques, aberturas: d.aberturas || [] };
+  estado = { ancho: d.ancho, fondo: d.fondo, bloques: d.bloques, aberturas: d.aberturas || [], recintos: d.recintos || {} };
   if (d.fotos) Object.assign(fotos, d.fotos);
   guardarFotosLocal();
   historial = []; histIdx = -1;
@@ -1366,11 +1368,114 @@ function ubicarEn(b, px, py) {
 /* ============================================================
    MÓDULOS (pestañas)
    ============================================================ */
+function recintosDe(ed) {
+  // devuelve los tramos (en px) que dejan los muros divisorios dentro de la edificación
+  const muros = estado.bloques.filter(m => {
+    if (m.cat !== 'muro') return false;
+    const cx = m.x + (m.a * ESCALA) / 2, cy = m.y + (m.f * ESCALA) / 2;
+    return cx > ed.x && cx < ed.x + ed.a * ESCALA && cy > ed.y && cy < ed.y + ed.f * ESCALA;
+  });
+  const W = ed.a * ESCALA, H = ed.f * ESCALA;
+  if (!muros.length) {
+    return [{ x: ed.x, y: ed.y, w: W, h: H, key: ed.id + '#0', tramo: 1 }];
+  }
+  const horiz = muros.filter(m => m.a >= m.f);
+  const vert = muros.filter(m => m.f > m.a);
+  let franjas = [];
+  if (horiz.length >= vert.length) {
+    const cortes = horiz.map(m => [m.y - ed.y, m.y - ed.y + m.f * ESCALA])
+      .filter(c => c[0] > 2 && c[1] < H - 2).sort((a, b) => a[0] - b[0]);
+    let top = 0;
+    cortes.forEach(c => { if (c[0] > top) franjas.push([top, c[0]]); top = Math.max(top, c[1]); });
+    if (top < H) franjas.push([top, H]);
+    return franjas.map((f, i) => ({ x: ed.x, y: ed.y + f[0], w: W, h: f[1] - f[0], key: ed.id + '#' + i, tramo: i + 1 }));
+  }
+  const cortes = vert.map(m => [m.x - ed.x, m.x - ed.x + m.a * ESCALA])
+    .filter(c => c[0] > 2 && c[1] < W - 2).sort((a, b) => a[0] - b[0]);
+  let left = 0;
+  cortes.forEach(c => { if (c[0] > left) franjas.push([left, c[0]]); left = Math.max(left, c[1]); });
+  if (left < W) franjas.push([left, W]);
+  return franjas.map((f, i) => ({ x: ed.x + f[0], y: ed.y, w: f[1] - f[0], h: H, key: ed.id + '#' + i, tramo: i + 1 }));
+}
+
+function nombreRecinto(r) {
+  const n = (estado.recintos || {})[r.key];
+  if (n) return n;
+  const ed = estado.bloques.find(b => r.key.indexOf(b.id + '#') === 0);
+  return 'Tramo ' + r.tramo + (ed ? ' · ' + ed.nombre : '');
+}
+
+function dibujarRecintos() {
+  const bod = $('bodega');
+  if (!bod) return;
+  bod.querySelectorAll('.recinto-lbl').forEach(e => e.remove());
+  bod.querySelectorAll('.bloque-wrapper.con-recintos').forEach(e => e.classList.remove('con-recintos'));
+  estado.bloques.filter(b => b.cat === 'edificacion').forEach(ed => {
+    const rs = recintosDe(ed);
+    const w = bod.querySelector('.bloque-wrapper[data-id="' + ed.id + '"]');
+    if (w) w.classList.toggle('con-recintos', rs.length > 1);
+    if (rs.length < 2) return;
+    rs.forEach(r => {
+      const d = document.createElement('div');
+      d.className = 'recinto-lbl';
+      const m2 = (r.w * r.h) / (ESCALA * ESCALA);
+      d.textContent = nombreRecinto(r) + ' · ' + m2.toFixed(2) + ' m²';
+      d.style.left = (r.x + r.w / 2) + 'px';
+      d.style.top = (r.y + r.h / 2) + 'px';
+      bod.appendChild(d);
+    });
+  });
+}
+
+function pintarRecintos() {
+  const c = $('listaRecintos');
+  if (!c) return;
+  c.innerHTML = '';
+  const eds = estado.bloques.filter(b => b.cat === 'edificacion');
+  if (!eds.length) {
+    c.innerHTML = '<p class="ayuda">Todavía no hay edificaciones.</p>';
+    return;
+  }
+  eds.forEach(ed => {
+    const rs = recintosDe(ed);
+    rs.forEach(r => {
+      const m2 = (r.w * r.h) / (ESCALA * ESCALA);
+      const fila = document.createElement('div');
+      fila.className = 'recinto-fila';
+      const cab = document.createElement('div');
+      cab.className = 'cab';
+      const izq = document.createElement('span');
+      izq.textContent = (r.w / ESCALA).toFixed(2) + ' × ' + (r.h / ESCALA).toFixed(2) + ' m';
+      const der = document.createElement('b');
+      der.textContent = m2.toFixed(2) + ' m²';
+      cab.append(izq, der);
+      const inp = document.createElement('input');
+      inp.type = 'text';
+      inp.placeholder = 'Nombre del área (opcional)';
+      inp.value = (estado.recintos || {})[r.key] || '';
+      inp.addEventListener('change', () => {
+        estado.recintos = estado.recintos || {};
+        estado.recintos[r.key] = inp.value.trim();
+        dibujarRecintos(); guardarHistorial();
+      });
+      fila.append(cab, inp);
+      c.appendChild(fila);
+    });
+  });
+}
+
 function cambiarTab(nombre) {
   document.querySelectorAll('.marca').forEach(b =>
     b.classList.toggle('activa', b.dataset.tab === nombre));
   document.querySelectorAll('.tab').forEach(s =>
     s.classList.toggle('activa', s.dataset.tab === nombre));
+  const ab = $('bloqueAb');
+  if (ab) {
+    $('hostAbBodega').appendChild(ab);
+    ab.style.display = (nombre === 'bodega') ? 'block' : 'none';
+    if (nombre === 'edif') { $('hostAbEdif').appendChild(ab); ab.style.display = 'block'; }
+  }
+  if (nombre === 'edif') pintarRecintos();
   const f = $('formElemento');
   if (nombre === 'equipos') {
     $('hostEq').appendChild(f);
@@ -1779,7 +1884,7 @@ function borrarTodo(silencioso) {
   const hayFotos = Object.keys(fotosPared).length > 0;
   if (!silencioso && !confirm('¿Borrar todo el plano?' +
       (hayFotos ? '\n\nTambién se quitarán las fotos de pared del 3D.' : ''))) return false;
-  estado = { ancho: estado.ancho, fondo: estado.fondo, bloques: [], aberturas: [] };
+  estado = { ancho: estado.ancho, fondo: estado.fondo, bloques: [], aberturas: [], recintos: {} };
   Object.keys(fotos).forEach(k => delete fotos[k]);
   guardarFotosLocal();
   limpiarFotosPared();
@@ -2194,6 +2299,24 @@ function correrTest() {
     $('marcaColor').value = 'amarillo-negro';
     $('marcaForma').value = 'perimetro';
     return b.marca === 30 && b.marcaForma === 'u' && b.marcaColor === 'rojo-blanco' && franjas === 3;
+  });
+
+  t('los muros dividen la edificación en recintos con área', () => {
+    borrarTodo(true);
+    $('categoriaBloque').value = 'edificacion'; cambiarCategoria(true);
+    $('nombreBloque').value = 'OFICINA';
+    $('anchoBloque').value = 4; $('fondoBloque').value = 4; $('altoBloque').value = 2.6;
+    agregarBloqueAuto();
+    const ed = estado.bloques[estado.bloques.length - 1];
+    $('categoriaBloque').value = 'muro'; cambiarCategoria(true);
+    $('nombreBloque').value = 'Divisorio';
+    $('anchoBloque').value = 4; $('fondoBloque').value = 0.15; $('altoBloque').value = 2.4;
+    iniciarColocacion(leerFormulario(), 1, null);
+    colocarEnPunto(ed.x, ed.y + 2 * ESCALA - 1.5);
+    cancelarColocacion();
+    const rs = recintosDe(ed);
+    const suma = rs.reduce((t, r) => t + (r.w * r.h) / (ESCALA * ESCALA), 0);
+    return rs.length === 2 && Math.abs(suma - 16) < 0.6;
   });
 
   cont.textContent = res.join('\n');

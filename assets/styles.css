@@ -230,6 +230,22 @@ body.colocando .ab-ov { pointer-events: none; }
 .bloque-wrapper[data-categoria="muro"] .btn-del,
 .bloque-wrapper[data-categoria="muro"] .btn-rot { transform: scale(.8); }
 
+/* cuando una edificación está dividida, sus tramos muestran el área */
+.bloque-wrapper.con-recintos .bloque-content { display: none; }
+
+/* etiquetas de recintos en el plano */
+.recinto-lbl {
+    position: absolute; z-index: 6; pointer-events: none; text-align: center;
+    font-size: 8px; font-weight: 700; color: #145A32; line-height: 1.1;
+    background: rgba(255,255,255,.80); border-radius: 3px; padding: 1px 3px;
+    transform: translate(-50%, -50%);
+}
+/* tabla de recintos */
+.tabla-recintos { font-size: 11px; }
+.recinto-fila { border-bottom: 1px solid #E5E9ED; padding: 5px 0; }
+.recinto-fila .cab { display: flex; justify-content: space-between; gap: 6px; color: #34495E; }
+.recinto-fila input { font-size: 11px; padding: 3px 5px; margin-top: 3px; }
+
 /* aberturas (puertas / ventanas) */
 .ab-ov { position: absolute; z-index: 7; pointer-events: auto; cursor: move; touch-action: none; box-sizing: border-box; }
 .ab-ov::after { content: ''; position: absolute; top: -7px; left: -7px; right: -7px; bottom: -7px; }

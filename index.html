@@ -58,30 +58,8 @@
                 <p class="alerta"><span>Área Libre:</span> <span id="txtLibre">0 m²</span></p>
             </div>
 
-            <h2>Puertas y ventanas</h2>
-            <div class="form-group">
-                <label for="abDueno">En</label>
-                <select id="abDueno"><option value="bodega">Bodega (paredes exteriores)</option></select>
-            </div>
-            <div class="form-group fila-campos">
-                <div><label for="abPared">Pared</label>
-                    <select id="abPared"><option value="arriba">Arriba</option><option value="abajo">Abajo</option><option value="izq">Izquierda</option><option value="der">Derecha</option></select>
-                </div>
-                <div><label for="abTipo">Tipo</label>
-                    <select id="abTipo"><option value="puerta">Puerta</option><option value="ventana">Ventana</option><option value="hueco">Abertura sin puerta</option></select>
-                </div>
-            </div>
-            <div class="form-group fila-campos">
-                <div><label for="abAncho">Ancho (m)</label><input type="number" id="abAncho" value="1" step="0.1" min="0.1"></div>
-                <div><label for="abAlto">Alto (m)</label><input type="number" id="abAlto" value="2.1" step="0.1" min="0.1"></div>
-            </div>
-            <div class="form-group fila-campos">
-                <div><label for="abDesde">Desde el piso (m)</label><input type="number" id="abDesde" value="0" step="0.1" min="0"></div>
-                <div><label for="abPos">Posición (m)</label><input type="number" id="abPos" value="" placeholder="centrada" step="0.1" min="0"></div>
-            </div>
-            <p class="ayuda">*Vacía = centrada. Después la mueves con la barra o arrastrándola.</p>
-            <button id="btnAgregarAb" class="btn-primario">+ Agregar abertura</button>
-            <div id="listaAb" class="lista-ab"></div>
+            <div id="hostAbBodega"></div>
+
         </section>
 
         <!-- ===================== 2 · EDIFICACIONES ===================== -->
@@ -89,6 +67,10 @@
             <h2>2. Edificaciones internas</h2>
             <p class="ayuda">Oficinas, baños, almacén, subáreas… con medidas propias. Elige el tipo y ubícalo dentro de la bodega.</p>
             <div id="hostEdif"></div>
+            <div id="hostAbEdif"></div>
+            <h2>Recintos y áreas</h2>
+            <p class="ayuda">Cada tramo que dejan los muros divisorios, con su nombre y su área.</p>
+            <div id="listaRecintos" class="tabla-recintos"></div>
         </section>
 
         <!-- ===================== 3 · EQUIPOS ===================== -->
@@ -207,6 +189,33 @@
             <button id="btnBorrarTodo" class="btn-borrar">Borrar todo</button>
             <p class="pie">v1.3 · Los datos se guardan en este navegador.</p>
         </section>
+
+<div id="bloqueAb">
+            <h2>Puertas y ventanas</h2>
+            <div class="form-group">
+                <label for="abDueno">En</label>
+                <select id="abDueno"><option value="bodega">Bodega (paredes exteriores)</option></select>
+            </div>
+            <div class="form-group fila-campos">
+                <div><label for="abPared">Pared</label>
+                    <select id="abPared"><option value="arriba">Arriba</option><option value="abajo">Abajo</option><option value="izq">Izquierda</option><option value="der">Derecha</option></select>
+                </div>
+                <div><label for="abTipo">Tipo</label>
+                    <select id="abTipo"><option value="puerta">Puerta</option><option value="ventana">Ventana</option><option value="hueco">Abertura sin puerta</option></select>
+                </div>
+            </div>
+            <div class="form-group fila-campos">
+                <div><label for="abAncho">Ancho (m)</label><input type="number" id="abAncho" value="1" step="0.1" min="0.1"></div>
+                <div><label for="abAlto">Alto (m)</label><input type="number" id="abAlto" value="2.1" step="0.1" min="0.1"></div>
+            </div>
+            <div class="form-group fila-campos">
+                <div><label for="abDesde">Desde el piso (m)</label><input type="number" id="abDesde" value="0" step="0.1" min="0"></div>
+                <div><label for="abPos">Posición (m)</label><input type="number" id="abPos" value="" placeholder="centrada" step="0.1" min="0"></div>
+            </div>
+            <p class="ayuda">*Vacía = centrada. Después la mueves con la barra o arrastrándola.</p>
+            <button id="btnAgregarAb" class="btn-primario">+ Agregar abertura</button>
+            <div id="listaAb" class="lista-ab"></div>
+        </div>
 
         <!-- ===================== FORMULARIO COMPARTIDO ===================== -->
         <div id="formElemento" style="display:none">
