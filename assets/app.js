@@ -1988,6 +1988,143 @@ function descargarBlob(blob, nombre) {
     setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 3000);
 }
 
+
+/* ============================================================
+   EXPORTACION VECTORIAL (SVG) PARA INKSCAPE
+   Genera el plano desde el DOM: muros, equipos, aberturas, rótulos
+   y cajetín. Sale a escala 1:100 (1 m = 10 mm).
+   ============================================================ */
+function _ms(v) {            // px de pantalla -> metros
+  return Math.round((v / ESCALA) * 10000) / 10000;
+}
+
+function _esc(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function svgDelPlano() {
+  const bod = document.getElementById('bodega');
+  if (!bod) return null;
+  const W = parseFloat(bod.style.width) || bod.clientWidth;
+  const H = parseFloat(bod.style.height) || bod.clientHeight;
+  const anc = W / ESCALA, fon = H / ESCALA;
+  const M = 1.2;                       // margen en metros
+  const MM = 10;                       // 1 m = 10 mm  =>  1:100
+  const anchTotal = anc + M * 2;
+  const altoTotal = fon + M * 2 + 1.6; // deja sitio al cajetín
+  const o = [];                        // elementos svg
+
+  o.push('<?xml version="1.0" encoding="UTF-8"?>');
+  o.push('<svg xmlns="http://www.w3.org/2000/svg" version="1.1" ' +
+    'width="' + (anchTotal * MM).toFixed(1) + 'mm" height="' + (altoTotal * MM).toFixed(1) + 'mm" ' +
+    'viewBox="0 0 ' + anchTotal.toFixed(3) + ' ' + altoTotal.toFixed(3) + '">');
+  o.push('<title>Plano de planta - ' + _esc(estado.nombreProyecto || 'CTC Energy') + '</title>');
+  o.push('<rect x="0" y="0" width="' + anchTotal.toFixed(3) + '" height="' + altoTotal.toFixed(3) + '" fill="#FFFFFF"/>');
+  o.push('<g transform="translate(' + M + ',' + M + ')">');
+
+  // ---- contorno de la bodega (muros)
+  o.push('<rect x="0" y="0" width="' + anc.toFixed(3) + '" height="' + fon.toFixed(3) + '" ' +
+    'fill="none" stroke="#111111" stroke-width="0.10"/>');
+  o.push('<rect x="0.10" y="0.10" width="' + (anc - 0.2).toFixed(3) + '" height="' + (fon - 0.2).toFixed(3) + '" ' +
+    'fill="none" stroke="#111111" stroke-width="0.01"/>');
+
+  // ---- rejilla de 1 m (muy tenue)
+  o.push('<g stroke="#DDDDDD" stroke-width="0.006">');
+  for (let x = 1; x < anc; x += 1) o.push('<line x1="' + x + '" y1="0" x2="' + x + '" y2="' + fon + '"/>');
+  for (let y = 1; y < fon; y += 1) o.push('<line x1="0" y1="' + y + '" x2="' + anc + '" y2="' + y + '"/>');
+  o.push('</g>');
+
+  // ---- equipos / edificaciones / muros / zonas
+  const wraps = bod.querySelectorAll('.bloque-wrapper');
+  wraps.forEach(w => {
+    const x = _ms(parseFloat(w.style.left) || 0);
+    const y = _ms(parseFloat(w.style.top) || 0);
+    const ww = _ms(w.offsetWidth);
+    const hh = _ms(w.offsetHeight);
+    const bloque = w.querySelector('.bloque');
+    let color = '#EEEEEE';
+    if (bloque) {
+      const c = getComputedStyle(bloque).backgroundColor;
+      if (c && c !== 'rgba(0, 0, 0, 0)') color = c;
+    }
+    const cat = w.dataset.categoria || 'objeto';
+    const grosor = cat === 'muro' ? 0.02 : 0.025;
+    o.push('<rect x="' + x.toFixed(3) + '" y="' + y.toFixed(3) + '" width="' + ww.toFixed(3) +
+      '" height="' + hh.toFixed(3) + '" fill="' + color + '" fill-opacity="0.85" stroke="#111111" ' +
+      'stroke-width="' + grosor + '"/>');
+
+    // rotulo
+    const cont = w.querySelector('.bloque-content');
+    const textos = [];
+    if (cont && cont.offsetParent !== null) {
+      const spans = cont.querySelectorAll('span');
+      if (spans[0]) textos.push(spans[0].textContent.trim());
+      if (spans[1]) textos.push(spans[1].textContent.trim());
+    }
+    if (textos.length) {
+      const cx = x + ww / 2, cy = y + hh / 2;
+      const fs = Math.min(0.22, Math.max(0.10, ww / Math.max(8, textos[0].length * 0.62)));
+      textos.forEach((t, i) => {
+        const dy = (i - (textos.length - 1) / 2) * fs * 1.15;
+        o.push('<text x="' + cx.toFixed(3) + '" y="' + (cy + dy).toFixed(3) + '" ' +
+          'font-family="Helvetica, Arial, sans-serif" font-size="' + fs.toFixed(3) + '" ' +
+          'font-weight="' + (i === 0 ? 'bold' : 'normal') + '" text-anchor="middle" ' +
+          'dominant-baseline="middle" fill="#111111">' + _esc(t) + '</text>');
+      });
+    }
+  });
+
+  // ---- puertas y ventanas
+  bod.querySelectorAll('.ab-ov').forEach(a => {
+    const host = a.parentElement;
+    if (!host) return;
+    const r = a.getBoundingClientRect(), hb = host.getBoundingClientRect();
+    const x = _ms((r.left - hb.left) / (hb.width / (parseFloat(host.style.width) || hb.width)));
+    const y = _ms((r.top - hb.top) / (hb.height / (parseFloat(host.style.height) || hb.height)));
+    const ww = _ms(r.width / (hb.width / (parseFloat(host.style.width) || hb.width)));
+    const hh = _ms(r.height / (hb.height / (parseFloat(host.style.height) || hb.height)));
+    const tipo = a.classList.contains('puerta') ? 'puerta' :
+      (a.classList.contains('ventana') ? 'ventana' : 'hueco');
+    const color = tipo === 'puerta' ? '#8b4513' : (tipo === 'ventana' ? '#5dade2' : '#FFFFFF');
+    o.push('<rect x="' + x.toFixed(3) + '" y="' + y.toFixed(3) + '" width="' + Math.max(ww, 0.05).toFixed(3) +
+      '" height="' + Math.max(hh, 0.05).toFixed(3) + '" fill="' + color + '" stroke="#111111" stroke-width="0.012"/>');
+  });
+
+  o.push('</g>');
+
+  // ---- cajetín
+  const cy0 = altoTotal - 1.2;
+  o.push('<g transform="translate(' + M + ',' + cy0 + ')">');
+  o.push('<rect x="0" y="0" width="' + (anc).toFixed(3) + '" height="1.0" fill="none" stroke="#111111" stroke-width="0.02"/>');
+  o.push('<line x1="' + (anc * 0.55).toFixed(3) + '" y1="0" x2="' + (anc * 0.55).toFixed(3) + '" y2="1.0" stroke="#111111" stroke-width="0.012"/>');
+  o.push('<line x1="' + (anc * 0.78).toFixed(3) + '" y1="0" x2="' + (anc * 0.78).toFixed(3) + '" y2="1.0" stroke="#111111" stroke-width="0.012"/>');
+  o.push('<text x="0.15" y="0.38" font-family="Helvetica, Arial, sans-serif" font-size="0.22" font-weight="bold" fill="#111111">' +
+    _esc((estado.nombreProyecto || 'TALLER CTC ENERGY')) + '</text>');
+  o.push('<text x="0.15" y="0.72" font-family="Helvetica, Arial, sans-serif" font-size="0.16" fill="#444444">PLANTA - ' +
+    new Date().toLocaleDateString('es-CO') + '</text>');
+  o.push('<text x="' + (anc * 0.55 + 0.15).toFixed(3) + '" y="0.38" font-family="Helvetica, Arial, sans-serif" font-size="0.16" fill="#444444">ESCALA</text>');
+  o.push('<text x="' + (anc * 0.55 + 0.15).toFixed(3) + '" y="0.72" font-family="Helvetica, Arial, sans-serif" font-size="0.22" font-weight="bold" fill="#111111">1:100</text>');
+  o.push('<text x="' + (anc * 0.78 + 0.15).toFixed(3) + '" y="0.38" font-family="Helvetica, Arial, sans-serif" font-size="0.16" fill="#444444">MEDIDAS</text>');
+  o.push('<text x="' + (anc * 0.78 + 0.15).toFixed(3) + '" y="0.72" font-family="Helvetica, Arial, sans-serif" font-size="0.22" font-weight="bold" fill="#111111">' +
+    anc.toFixed(2) + ' x ' + fon.toFixed(2) + ' m</text>');
+  o.push('</g>');
+
+  o.push('</svg>');
+  return o.join('\n');
+}
+
+function exportarSVG() {
+  const svg = svgDelPlano();
+  if (!svg) { alert('Genera el lienzo primero'); return; }
+  const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  const base = (estado.nombreProyecto || 'plano').replace(/[^\w\-]+/g, '_').slice(0, 40);
+  a.download = base + '_' + new Date().toISOString().slice(0, 10) + '.svg';
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+}
+
 function exportarJSON() {
     const doc = documentoProyecto();
     const blob = new Blob([JSON.stringify(doc, null, 2)], { type: 'application/json' });
@@ -3025,6 +3162,7 @@ async function iniciar() {
     programarGuardado();
   });
   on('btnExportar', 'click', exportarJSON);
+on('btnSVG', 'click', exportarSVG);
   on('btnImportar', 'click', () => {
     $('fileImportar').dataset.modo = 'reemplazar';
     $('fileImportar').click();
